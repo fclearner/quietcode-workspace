@@ -16,6 +16,7 @@
     </a>
     <nav class="main-nav" aria-label="主导航">
       <button data-view="problems" class="nav-item active">目录</button>
+      <button data-view="guide" class="nav-item">学习计划</button>
       <button data-view="companies" class="nav-item">归档</button>
       <button data-view="progress" class="nav-item">概览</button>
       <button data-view="submissions" class="nav-item">活动</button>
@@ -97,6 +98,47 @@
       </div>
     </section>
 
+    <section id="guideView" class="page shell hidden">
+      <div class="guide-hero">
+        <div class="guide-intro">
+          <span class="eyebrow">ADAPTIVE LEARNING PLAN</span>
+          <h1>今天该学什么，我帮你排好了。</h1>
+          <p id="guideMessage">正在分析近期记录并生成计划…</p>
+          <div class="guide-actions"><button id="startRecommendation" class="primary-button" disabled>开始下一项 <span>→</span></button><button id="refreshGuide" class="secondary-button">重新评估</button></div>
+        </div>
+        <div class="readiness-card">
+          <div id="readinessRing" class="readiness-ring"><strong id="readinessScore">—</strong><small>状态指数</small></div>
+          <div><small>当前建议强度</small><strong id="targetDifficulty">评估中</strong><p>指数综合完成量、正确率、连续性和薄弱项。</p></div>
+        </div>
+      </div>
+
+      <div class="guide-metrics">
+        <article><small>今日进度</small><strong id="guideToday">0 / 1</strong><span>按每日目标计算</span></article>
+        <article><small>提交通过率</small><strong id="guidePassRate">—</strong><span>仅统计正式提交</span></article>
+        <article><small>待巩固</small><strong id="guideAttempted">0</strong><span>尝试过但未完成</span></article>
+        <article><small>连续学习</small><strong id="guideStreak">0 天</strong><span>保持稳定比突击更重要</span></article>
+      </div>
+
+      <div class="guide-layout">
+        <section class="guide-panel training-plan">
+          <div class="panel-heading"><div><span class="eyebrow">TODAY'S QUEUE</span><h2>动态训练队列</h2></div><span id="guideUpdatedAt">—</span></div>
+          <div id="recommendationList" class="recommendation-list"><div class="guide-loading"><span class="spinner"></span>正在生成个性化队列…</div></div>
+        </section>
+        <aside class="guide-side">
+          <section class="guide-panel weakness-panel">
+            <div class="panel-heading"><div><span class="eyebrow">FOCUS AREAS</span><h2>当前薄弱项</h2></div></div>
+            <div id="weakTopicList" class="weak-topic-list"></div>
+          </section>
+          <section class="guide-panel coach-rules">
+            <span class="eyebrow">HOW IT ADAPTS</span>
+            <h2>调整逻辑</h2>
+            <ul><li>失败后优先同类巩固，不立即堆高难度</li><li>连续稳定通过后，逐步增加综合题比例</li><li>已完成内容超过一周后进入复盘候选</li><li>每次运行和提交后重新生成训练队列</li></ul>
+          </section>
+        </aside>
+      </div>
+      <section id="reviewSection" class="guide-panel review-section hidden"><div class="panel-heading"><div><span class="eyebrow">SPACED REVIEW</span><h2>间隔复盘</h2></div></div><div id="reviewList" class="review-list"></div></section>
+    </section>
+
     <section id="companyView" class="page shell hidden">
       <div class="section-heading"><div><span class="eyebrow">REFERENCE ARCHIVE</span><h1>资料归档</h1><p>按来源查看已收录的资料。</p></div><div class="search-box company-search"><span>⌕</span><input id="companySearch" placeholder="搜索来源…"></div></div>
       <div id="companyGrid" class="company-grid"></div>
@@ -115,7 +157,7 @@
     <section id="workspaceView" class="workspace hidden">
       <div class="workspace-bar">
         <div><button id="backToList" class="back-button">← 目录</button><span class="crumb">/</span><strong id="workspaceTitle">详情</strong></div>
-        <div class="workspace-actions"><button id="workspaceFavorite" class="tool-button">☆</button><button id="resetCode" class="secondary-button">重置代码</button><button id="runBtn" class="run-button">▶ 运行</button><button id="submitBtn" class="submit-button">提交</button></div>
+        <div class="workspace-actions"><button id="workspaceGuide" class="secondary-button">学习建议</button><button id="workspaceFavorite" class="tool-button">☆</button><button id="resetCode" class="secondary-button">重置代码</button><button id="runBtn" class="run-button">▶ 运行</button><button id="submitBtn" class="submit-button">提交</button></div>
       </div>
       <div class="workspace-grid">
         <article class="description-pane panel">
@@ -137,7 +179,7 @@
               <label>预期输出</label><textarea id="caseExpected" spellcheck="false"></textarea>
               <button id="addCase" class="add-case">＋ 添加自定义用例</button>
             </div>
-            <div id="resultPanel" class="result-panel hidden"><div id="resultHeadline"></div><pre id="resultOutput"></pre></div>
+            <div id="resultPanel" class="result-panel hidden"><div id="resultHeadline"></div><pre id="resultOutput"></pre><div id="coachFeedback" class="coach-feedback hidden"></div></div>
           </div>
         </section>
       </div>

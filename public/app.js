@@ -18,6 +18,7 @@ let currentProblem = null;
 let currentCase = 0;
 let activeLanguage = '';
 let dailyProblem = null;
+let guide = null;
 let toastTimer;
 
 function loadState() {
@@ -71,6 +72,7 @@ async function init() {
     chooseDaily();
     renderProblems();
     updateStats();
+    await refreshGuide();
     route();
   } catch (error) {
     $('#problemRows').innerHTML = `<div class="empty-state"><strong>无法加载题库</strong><span>${escapeHtml(error.message)}</span></div>`;
@@ -183,11 +185,12 @@ function calculateStreak() {
 }
 
 function showView(name) {
-  ['listView', 'companyView', 'progressView', 'submissionsView', 'workspaceView'].forEach((id) => $(`#${id}`).classList.add('hidden'));
-  const id = { problems: 'listView', companies: 'companyView', progress: 'progressView', submissions: 'submissionsView', workspace: 'workspaceView' }[name];
+  ['listView', 'guideView', 'companyView', 'progressView', 'submissionsView', 'workspaceView'].forEach((id) => $(`#${id}`).classList.add('hidden'));
+  const id = { problems: 'listView', guide: 'guideView', companies: 'companyView', progress: 'progressView', submissions: 'submissionsView', workspace: 'workspaceView' }[name];
   $(`#${id}`).classList.remove('hidden');
   $$('.nav-item').forEach((button) => button.classList.toggle('active', button.dataset.view === name));
   if (name === 'companies') renderCompanies();
+  if (name === 'guide') renderGuide();
   if (name === 'progress') renderProgress();
   if (name === 'submissions') renderSubmissions();
 }
@@ -196,8 +199,74 @@ function route() {
   const match = location.hash.match(/^#\/problem\/(.+)$/);
   if (match && data.problems.length) return openProblem(decodeURIComponent(match[1]), false);
   const view = location.hash.replace('#/', '') || 'problems';
-  if (['problems', 'companies', 'progress', 'submissions'].includes(view)) showView(view);
+  if (['problems', 'guide', 'companies', 'progress', 'submissions'].includes(view)) showView(view);
   else showView('problems');
+}
+
+async function refreshGuide(showNotice = false) {
+  if (!data.problems.length) return;
+  $('#refreshGuide').disabled = true;
+  try {
+    const response = await fetch('/api/guide', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        today: dateKey(),
+        solved: state.solved,
+        attempted: state.attempted,
+        dailyGoal: state.settings.dailyGoal,
+        submissions: state.submissions.slice(0, 300).map(({ slug, kind, passed, createdAt }) => ({ slug, kind, passed, createdAt }))
+      })
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || '学习计划生成失败');
+    guide = result;
+    renderGuide();
+    if (currentProblem) renderDescription();
+    if (showNotice) showToast('学习计划已根据本次记录更新');
+  } catch (error) {
+    if (showNotice) showToast(error.message);
+    $('#guideMessage').textContent = `暂时无法生成计划：${error.message}`;
+  } finally {
+    $('#refreshGuide').disabled = false;
+  }
+}
+
+function renderGuide() {
+  if (!guide) return;
+  const profile = guide.profile;
+  const difficultyText = { easy: '基础巩固', medium: '稳定进阶', hard: '综合挑战' };
+  const modeText = { retry: '优先回看', weakness: '弱项训练', warmup: '热身', core: '核心', stretch: '挑战', review: '复盘' };
+  $('#guideMessage').textContent = guide.message;
+  $('#readinessScore').textContent = profile.readiness;
+  $('#readinessRing').style.setProperty('--score', profile.readiness);
+  $('#targetDifficulty').textContent = difficultyText[profile.targetDifficulty] || '基础巩固';
+  $('#guideToday').textContent = `${profile.todaySolved} / ${profile.dailyGoal}`;
+  $('#guidePassRate').textContent = profile.submissionCount ? `${profile.passRate}%` : '待积累';
+  $('#guideAttempted').textContent = profile.attemptedCount;
+  $('#guideStreak').textContent = `${profile.streak} 天`;
+  $('#guideUpdatedAt').textContent = `更新于 ${new Date(guide.generatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+  $('#startRecommendation').disabled = !guide.recommendations.length;
+  $('#recommendationList').innerHTML = guide.recommendations.length ? guide.recommendations.map((item, index) => `
+    <article class="recommendation-item" data-guide-slug="${item.slug}">
+      <span class="queue-number">${index + 1}</span>
+      <div class="recommendation-main"><header><strong>${escapeHtml(`${item.id ? `${item.id}. ` : ''}${item.title}`)}</strong><span class="mode-pill ${item.mode}">${modeText[item.mode] || '训练'}</span></header><p>${escapeHtml(item.reason)}</p><div class="recommendation-tags"><span>${difficultyName[item.difficulty]}</span>${item.topics.slice(0, 3).map((topic) => `<span>${escapeHtml(topic)}</span>`).join('')}${item.hasLocalTests ? '<span>本地测试</span>' : ''}</div></div>
+      <span>→</span>
+    </article>`).join('') : '<div class="empty-state"><strong>当前目录已全部完成</strong><span>可以从间隔复盘开始</span></div>';
+  $('#weakTopicList').innerHTML = guide.weakTopics.length ? guide.weakTopics.map((item) => `
+    <div class="weak-topic"><header><strong>${escapeHtml(item.topic)}</strong><span>掌握度 ${item.mastery}%</span></header><div class="mastery-track"><i style="width:${item.mastery}%"></i></div><small>${item.struggling} 项待完成 · ${item.failures} 次未通过</small></div>`).join('') : '<div class="empty-state"><strong>还没有明确薄弱项</strong><span>完成几次提交后，我会开始识别</span></div>';
+  $('#reviewSection').classList.toggle('hidden', !guide.reviews.length);
+  $('#reviewList').innerHTML = guide.reviews.map((item) => `<article class="review-item" data-guide-slug="${item.slug}"><strong>${escapeHtml(item.title)}</strong><span>${escapeHtml(item.reason)}</span></article>`).join('');
+}
+
+function adviceForProblem(problem) {
+  if (!guide) return '';
+  const recommendation = guide.recommendations.find((item) => item.slug === problem.slug);
+  if (recommendation) return recommendation.reason;
+  const weak = guide.weakTopics.filter((item) => problem.topics.includes(item.topic)).slice(0, 2);
+  if (weak.length) return `这项内容涉及当前待加强的 ${weak.map((item) => item.topic).join('、')}，建议重点记录失败边界和复杂度。`;
+  if (state.solved[problem.slug]) return '你已经完成过这项内容。这次可以尝试不看旧代码复现，并比较时间与空间复杂度。';
+  return `这项内容不在当前训练队列前列；如果现在开始，我仍会在提交后把结果纳入下一轮评估。`;
 }
 
 function renderCompanies() {
@@ -260,6 +329,7 @@ function renderDescription() {
   const companies = p.companies.slice().sort((a, b) => b.frequency - a.frequency).slice(0, 18);
   $('#descriptionContent').innerHTML = `<div class="problem-heading"><h1>${escapeHtml(`${p.id ? `${p.id}. ` : ''}${p.title}`)}</h1><a href="${escapeHtml(p.link)}" target="_blank" rel="noreferrer" title="查看来源页面">↗</a></div>
     <div class="description-meta"><span class="difficulty-badge ${p.difficulty}">${difficultyName[p.difficulty]}</span>${p.topics.map((topic) => `<span>${escapeHtml(topic)}</span>`).join('')}</div>
+    <div class="problem-guidance"><small>学习建议</small><p>${escapeHtml(adviceForProblem(p))}</p></div>
     ${hasDetails ? `<p>${escapeHtml(p.summary)}</p><h3>输入格式</h3><p>${escapeHtml(p.input).replaceAll('\n', '<br>')}</p><h3>输出格式</h3><p>${escapeHtml(p.output)}</p><h3>示例</h3>${p.examples.map((example, i) => `<div class="example-box"><strong>示例 ${i + 1}</strong><pre>输入：${escapeHtml(example.input)}\n输出：${escapeHtml(example.output)}</pre></div> `).join('')}` : `<div class="external-notice"><strong>详细内容未包含在本地资料中</strong><p>当前页面已导入条目元数据。可在 <a href="${escapeHtml(p.link)}" target="_blank" rel="noreferrer">来源页面 ↗</a> 查看详细内容，然后在右侧使用自定义输入运行代码。</p></div>`}
     <section class="company-frequency"><h3>出现过的公司 · ${p.companies.length}</h3><div>${companies.map((item) => `<span>${escapeHtml(item.name)} · ${item.frequency.toFixed(1)}</span>`).join('')}</div></section>`;
 }
@@ -326,6 +396,7 @@ async function executeCode(kind) {
   switchConsoleTab('result');
   $('#resultHeadline').innerHTML = '<span class="result-title">正在执行代码…</span>';
   $('#resultOutput').textContent = '';
+  $('#coachFeedback').classList.add('hidden');
   try {
     const language = $('#languageSelect').value;
     const code = $('#codeEditor').value;
@@ -354,7 +425,16 @@ async function executeCode(kind) {
     state.submissions.unshift({ id: crypto.randomUUID(), slug: currentProblem.slug, title: currentProblem.title, language, kind, passed, timeMs: execution.timeMs || 0, createdAt: new Date().toISOString(), code });
     state.submissions = state.submissions.slice(0, 300);
     saveState();
-    showToast(kind === 'submit' ? (passed ? '提交通过，漂亮！' : '还有用例未通过') : '运行完成');
+    await refreshGuide();
+    const next = guide?.recommendations?.[0];
+    const feedback = kind === 'submit'
+      ? passed
+        ? `这次通过已计入学习画像。${next ? `下一项建议是「${next.title}」，原因：${next.reason}` : '今天可以转入复盘。'}`
+        : `先定位第一个失败用例：比较预期与实际输出，再检查边界条件。计划已经提高了相关主题和本题重试的优先级。`
+      : '运行成功只说明程序能够执行；完成正式提交后，我会结合测试结果调整掌握度和下一项内容。';
+    $('#coachFeedback').innerHTML = `<strong>基于本次结果的建议</strong>${escapeHtml(feedback)}`;
+    $('#coachFeedback').classList.remove('hidden');
+    showToast(kind === 'submit' ? (passed ? '已通过，学习计划同步更新' : '未通过，已调整巩固优先级') : '运行完成');
   } catch (error) {
     $('#resultHeadline').innerHTML = '<span class="result-title error">执行服务出错</span>';
     $('#resultOutput').textContent = error.message;
@@ -450,6 +530,7 @@ function bindEvents() {
   $('#companyGrid').addEventListener('click', (event) => { const card = event.target.closest('[data-company]'); if (!card) return; filters.company = card.dataset.company; $('#companyFilter').value = filters.company; filters.page = 1; location.hash = '#/problems'; setTimeout(renderProblems); });
   $('#backToList').addEventListener('click', () => { location.hash = '#/problems'; renderProblems(); });
   $('#workspaceFavorite').addEventListener('click', () => currentProblem && toggleFavorite(currentProblem.slug));
+  $('#workspaceGuide').addEventListener('click', () => { location.hash = '#/guide'; });
   $('#runBtn').addEventListener('click', () => executeCode('run'));
   $('#submitBtn').addEventListener('click', () => executeCode('submit'));
   $('#resetCode').addEventListener('click', () => { if (confirm('确定恢复当前语言的初始代码吗？')) { $('#codeEditor').value = defaultTemplate($('#languageSelect').value); saveDraft(); updateLineNumbers(); } });
@@ -466,9 +547,13 @@ function bindEvents() {
   $('#caseInput').addEventListener('change', persistCaseFields); $('#caseExpected').addEventListener('change', persistCaseFields);
   $('#addCase').addEventListener('click', () => { state.customCases[currentProblem.slug] ||= []; state.customCases[currentProblem.slug].push({ input: '', output: '' }); currentCase = (currentProblem.examples?.length || 0) + state.customCases[currentProblem.slug].length - 1; saveState(); renderCases(); });
   $('#exportData').addEventListener('click', exportState);
+  $('#startRecommendation').addEventListener('click', () => guide?.recommendations?.[0] && openProblem(guide.recommendations[0].slug));
+  $('#refreshGuide').addEventListener('click', () => refreshGuide(true));
+  $('#recommendationList').addEventListener('click', (event) => { const item = event.target.closest('[data-guide-slug]'); if (item) openProblem(item.dataset.guideSlug); });
+  $('#reviewList').addEventListener('click', (event) => { const item = event.target.closest('[data-guide-slug]'); if (item) openProblem(item.dataset.guideSlug); });
   $('#clearSubmissions').addEventListener('click', () => { if (confirm('确定清空全部提交记录吗？')) { state.submissions = []; saveState(); renderSubmissions(); } });
   $('#importDataBtn').addEventListener('click', () => $('#importFile').click());
-  $('#importFile').addEventListener('change', async (event) => { try { const parsed = JSON.parse(await event.target.files[0].text()); if (!parsed.state) throw new Error('备份格式无效'); state = { ...structuredClone(defaultState), ...parsed.state, settings: { ...defaultState.settings, ...parsed.state.settings } }; saveState(); applyTheme(); showToast('进度导入成功'); } catch (error) { showToast(error.message); } });
+  $('#importFile').addEventListener('change', async (event) => { try { const parsed = JSON.parse(await event.target.files[0].text()); if (!parsed.state) throw new Error('备份格式无效'); state = { ...structuredClone(defaultState), ...parsed.state, settings: { ...defaultState.settings, ...parsed.state.settings } }; saveState(); applyTheme(); await refreshGuide(); showToast('进度导入成功'); } catch (error) { showToast(error.message); } });
 }
 
 init();

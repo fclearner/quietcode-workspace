@@ -4,6 +4,7 @@ const path = require('node:path');
 const os = require('node:os');
 const { spawn } = require('node:child_process');
 const { Worker } = require('node:worker_threads');
+const { generateGuide } = require('./guide-engine');
 
 const ROOT = __dirname;
 const PUBLIC_DIR = path.join(ROOT, 'public');
@@ -13,6 +14,12 @@ const HOST = process.env.HOST || '127.0.0.1';
 const MAX_BODY = 512 * 1024;
 const MAX_OUTPUT = 64 * 1024;
 const TIMEOUT = 5000;
+let problemDataCache;
+
+function getProblemData() {
+  if (!problemDataCache) problemDataCache = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
+  return problemDataCache;
+}
 
 const mime = {
   '.html': 'text/html; charset=utf-8',
@@ -189,6 +196,15 @@ async function api(req, res, pathname) {
         if (!passed) break;
       }
       return json(res, 200, { passed: results.length === body.tests.length && results.every((item) => item.passed), passedCount: results.filter((item) => item.passed).length, total: body.tests.length, results });
+    } catch (error) {
+      return json(res, 400, { error: error.message });
+    }
+  }
+  if (req.method === 'POST' && pathname === '/api/guide') {
+    try {
+      if (!fs.existsSync(DATA_FILE)) throw new Error('题库尚未构建');
+      const profile = await readBody(req);
+      return json(res, 200, generateGuide(getProblemData(), profile));
     } catch (error) {
       return json(res, 400, { error: error.message });
     }
