@@ -8,7 +8,7 @@ const PAGE_SIZE = 25;
 
 const defaultState = {
   solved: {}, attempted: {}, favorites: [], submissions: [], drafts: {}, notes: {}, customCases: {},
-  settings: { theme: 'light', defaultLanguage: 'javascript', dailyGoal: 1, fontSize: 13 }
+  settings: { theme: 'light', defaultLanguage: 'javascript', dailyGoal: 1, fontSize: 13 }, templateVersion: 2
 };
 
 let data = { problems: [], companies: [] };
@@ -24,7 +24,38 @@ let toastTimer;
 function loadState() {
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || localStorage.getItem('algolab-state-v1'));
-    return { ...structuredClone(defaultState), ...saved, settings: { ...defaultState.settings, ...(saved?.settings || {}) } };
+    const merged = { ...structuredClone(defaultState), ...saved, settings: { ...defaultState.settings, ...(saved?.settings || {}) } };
+    if (saved && saved.templateVersion !== 2) {
+      const markers = {
+        'two-sum': ['const seen = new Map()', 'seen = {}', 'unordered_map<int,int> seen'],
+        'valid-parentheses': ['const pairs =', "pairs = {')':", 'unordered_map<char,char>'],
+        'best-time-to-buy-and-sell-stock': ['let low = Infinity, profit = 0', 'low, profit =', 'int x,low=INT_MAX,profit=0']
+      };
+      for (const [slug, signatures] of Object.entries(markers)) {
+        let seededAnswerFound = false;
+        const codes = merged.drafts?.[slug]?.codes;
+        if (codes) {
+          for (const [language, code] of Object.entries(codes)) {
+            if (signatures.some((signature) => code.includes(signature))) {
+              delete codes[language];
+              seededAnswerFound = true;
+            }
+          }
+        }
+        merged.submissions = merged.submissions.filter((submission) => {
+          const seeded = submission.slug === slug && signatures.some((signature) => String(submission.code || '').includes(signature));
+          if (seeded) seededAnswerFound = true;
+          return !seeded;
+        });
+        if (seededAnswerFound) {
+          delete merged.solved[slug];
+          delete merged.attempted[slug];
+        }
+      }
+      merged.templateVersion = 2;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+    }
+    return merged;
   } catch { return structuredClone(defaultState); }
 }
 
@@ -319,6 +350,7 @@ function openProblem(slug, updateHash = true) {
   loadDraft(language);
   renderCases();
   renderSubmissions($('#problemSubmissions'), slug);
+  renderReference();
   switchDescTab('description');
   switchConsoleTab('cases');
 }
@@ -336,9 +368,24 @@ function renderDescription() {
 
 function defaultTemplate(language) {
   if (currentProblem.templates?.[language]) return currentProblem.templates[language];
-  if (language === 'python') return "import sys\n\ndef solve(data: str):\n    # 在这里写你的解法\n    return data.strip()\n\nprint(solve(sys.stdin.read()))\n";
-  if (language === 'cpp') return "#include <iostream>\n#include <string>\nusing namespace std;\n\nint main() {\n    // 在这里写你的解法\n    string line;\n    while (getline(cin, line)) cout << line << '\\n';\n    return 0;\n}\n";
-  return "const fs = require('fs');\nconst input = fs.readFileSync(0, 'utf8').trim();\n\nfunction solve(input) {\n  // 在这里写你的解法\n  return input;\n}\n\nconsole.log(solve(input));\n";
+  if (language === 'python') return "import sys\n\ndef solve(data: str):\n    # TODO: 在这里写你的解法\n    return ''\n\nprint(solve(sys.stdin.read()))\n";
+  if (language === 'cpp') return "#include <iostream>\n#include <string>\nusing namespace std;\n\nint main() {\n    string input;\n    // TODO: 读取输入并写出你的解法\n    return 0;\n}\n";
+  return "const fs = require('fs');\nconst input = fs.readFileSync(0, 'utf8').trim();\n\nfunction solve(input) {\n  // TODO: 在这里写你的解法\n  return '';\n}\n\nconsole.log(solve(input));\n";
+}
+
+function renderReference() {
+  if (!currentProblem) return;
+  const unlocked = Boolean(state.solved[currentProblem.slug] && Object.keys(currentProblem.solutions || {}).length);
+  $('#referenceTab').classList.toggle('hidden', !unlocked);
+  if (!unlocked) {
+    $('#referenceContent').innerHTML = '';
+    return;
+  }
+  const language = $('#languageSelect').value;
+  const solution = currentProblem.solutions[language];
+  $('#referenceContent').innerHTML = solution
+    ? `<h3>${languageName[language]} 参考实现</h3><p>这是通过后解锁的一种写法。先比较思路和复杂度，不必逐行照抄。</p><pre>${escapeHtml(solution)}</pre>`
+    : '<div class="empty-state"><strong>当前语言暂无参考实现</strong><span>可以切换语言查看</span></div>';
 }
 
 function loadDraft(language) {
@@ -397,21 +444,24 @@ async function executeCode(kind) {
   $('#resultHeadline').innerHTML = '<span class="result-title">正在执行代码…</span>';
   $('#resultOutput').textContent = '';
   $('#coachFeedback').classList.add('hidden');
+  $('#solutionReveal').classList.add('hidden');
   try {
     const language = $('#languageSelect').value;
     const code = $('#codeEditor').value;
     let response;
-    if (kind === 'submit' && currentProblem.examples?.length) {
-      response = await fetch('/api/judge', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ language, code, tests: allCases() }) });
+    const judgeTests = allCases().filter((test) => String(test.output || '').trim());
+    if (kind === 'submit') {
+      if (!judgeTests.length) throw new Error('请至少填写一个测试用例的预期输出，再进行提交');
+      response = await fetch('/api/judge', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ language, code, tests: judgeTests }) });
     } else {
       const test = allCases()[currentCase];
       response = await fetch('/api/run', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ language, code, input: test.input }) });
     }
     const result = await response.json();
     if (!response.ok) throw new Error(result.error || '执行失败');
-    const passed = kind === 'submit' && currentProblem.examples?.length ? result.passed : result.exitCode === 0 && !result.timedOut;
+    const passed = kind === 'submit' ? result.passed : result.exitCode === 0 && !result.timedOut;
     const execution = result.results?.at(-1) || result;
-    if (kind === 'submit' && currentProblem.examples?.length) {
+    if (kind === 'submit') {
       $('#resultHeadline').innerHTML = `<span class="result-title ${passed ? 'success' : 'error'}">${passed ? '通过全部测试' : `未通过 · ${result.passedCount}/${result.total}`}</span>`;
       $('#resultOutput').textContent = passed ? `恭喜！全部 ${result.total} 个测试用例均已通过。` : formatExecution(execution);
     } else {
@@ -434,6 +484,11 @@ async function executeCode(kind) {
       : '运行成功只说明程序能够执行；完成正式提交后，我会结合测试结果调整掌握度和下一项内容。';
     $('#coachFeedback').innerHTML = `<strong>基于本次结果的建议</strong>${escapeHtml(feedback)}`;
     $('#coachFeedback').classList.remove('hidden');
+    if (kind === 'submit' && passed && currentProblem.solutions?.[language]) {
+      $('#solutionReveal').innerHTML = `<header><strong>参考实现 · ${languageName[language]}</strong><span>通过后解锁</span></header><pre>${escapeHtml(currentProblem.solutions[language])}</pre>`;
+      $('#solutionReveal').classList.remove('hidden');
+      renderReference();
+    }
     showToast(kind === 'submit' ? (passed ? '已通过，学习计划同步更新' : '未通过，已调整巩固优先级') : '运行完成');
   } catch (error) {
     $('#resultHeadline').innerHTML = '<span class="result-title error">执行服务出错</span>';
@@ -461,6 +516,7 @@ function switchDescTab(name) {
   $('#descriptionContent').classList.toggle('hidden', name !== 'description');
   $('#notesContent').classList.toggle('hidden', name !== 'solutions');
   $('#problemSubmissions').classList.toggle('hidden', name !== 'submissions');
+  $('#referenceContent').classList.toggle('hidden', name !== 'reference');
 }
 
 function switchConsoleTab(name) {
@@ -534,7 +590,7 @@ function bindEvents() {
   $('#runBtn').addEventListener('click', () => executeCode('run'));
   $('#submitBtn').addEventListener('click', () => executeCode('submit'));
   $('#resetCode').addEventListener('click', () => { if (confirm('确定恢复当前语言的初始代码吗？')) { $('#codeEditor').value = defaultTemplate($('#languageSelect').value); saveDraft(); updateLineNumbers(); } });
-  $('#languageSelect').addEventListener('change', (event) => { saveDraft(activeLanguage); loadDraft(event.target.value); });
+  $('#languageSelect').addEventListener('change', (event) => { saveDraft(activeLanguage); loadDraft(event.target.value); renderReference(); });
   $('#codeEditor').addEventListener('input', () => { $('#saveState').textContent = '保存中…'; updateLineNumbers(); clearTimeout($('#codeEditor').saveTimer); $('#codeEditor').saveTimer = setTimeout(saveDraft, 450); });
   $('#codeEditor').addEventListener('scroll', () => { $('#lineNumbers').scrollTop = $('#codeEditor').scrollTop; });
   $('#codeEditor').addEventListener('keydown', (event) => { if (event.key === 'Tab') { event.preventDefault(); const editor = event.target; editor.setRangeText('  ', editor.selectionStart, editor.selectionEnd, 'end'); editor.dispatchEvent(new Event('input')); } });

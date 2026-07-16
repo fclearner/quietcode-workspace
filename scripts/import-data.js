@@ -60,9 +60,14 @@ const curated = {
       { input: '3 3\n6', output: '0 1' }
     ],
     templates: {
-      javascript: "const fs = require('fs');\nconst lines = fs.readFileSync(0, 'utf8').trim().split(/\\n/);\nconst nums = lines[0].trim().split(/\\s+/).map(Number);\nconst target = Number(lines[1]);\n\n// 在这里写你的解法\nconst seen = new Map();\nfor (let i = 0; i < nums.length; i++) {\n  const j = seen.get(target - nums[i]);\n  if (j !== undefined) {\n    console.log(j, i);\n    break;\n  }\n  seen.set(nums[i], i);\n}\n",
-      python: "import sys\nlines = sys.stdin.read().strip().splitlines()\nnums = list(map(int, lines[0].split()))\ntarget = int(lines[1])\n\n# 在这里写你的解法\nseen = {}\nfor i, num in enumerate(nums):\n    if target - num in seen:\n        print(seen[target - num], i)\n        break\n    seen[num] = i\n",
-      cpp: "#include <iostream>\n#include <unordered_map>\n#include <vector>\nusing namespace std;\nint main() {\n    vector<int> nums; int x, target;\n    string line; getline(cin, line);\n    // 在这里写你的解法\n    size_t pos = 0;\n    while (pos < line.size()) { nums.push_back(stoi(line, &pos)); while (pos < line.size() && line[pos] == ' ') pos++; line = line.substr(pos); pos = 0; }\n    cin >> target; unordered_map<int,int> seen;\n    for (int i=0;i<(int)nums.size();i++) {\n        if (seen.count(target-nums[i])) { cout << seen[target-nums[i]] << ' ' << i << '\\n'; return 0; }\n        seen[nums[i]]=i;\n    }\n}\n"
+      javascript: "const fs = require('fs');\nconst lines = fs.readFileSync(0, 'utf8').trim().split(/\\n/);\nconst nums = lines[0].trim().split(/\\s+/).map(Number);\nconst target = Number(lines[1]);\n\nfunction twoSum(nums, target) {\n  // TODO: 在这里写你的解法\n  return [];\n}\n\nconsole.log(twoSum(nums, target).join(' '));\n",
+      python: "import sys\nlines = sys.stdin.read().strip().splitlines()\nnums = list(map(int, lines[0].split()))\ntarget = int(lines[1])\n\ndef two_sum(nums, target):\n    # TODO: 在这里写你的解法\n    return []\n\nprint(*two_sum(nums, target))\n",
+      cpp: "#include <iostream>\n#include <sstream>\n#include <vector>\nusing namespace std;\n\nvector<int> twoSum(const vector<int>& nums, int target) {\n    // TODO: 在这里写你的解法\n    return {};\n}\n\nint main() {\n    string line; getline(cin, line);\n    stringstream ss(line); vector<int> nums; int value, target;\n    while (ss >> value) nums.push_back(value);\n    cin >> target;\n    vector<int> answer = twoSum(nums, target);\n    for (int i = 0; i < (int)answer.size(); i++) cout << (i ? \" \" : \"\") << answer[i];\n    cout << '\\n';\n}\n"
+    },
+    solutions: {
+      javascript: "function twoSum(nums, target) {\n  const seen = new Map();\n  for (let i = 0; i < nums.length; i++) {\n    const j = seen.get(target - nums[i]);\n    if (j !== undefined) return [j, i];\n    seen.set(nums[i], i);\n  }\n  return [];\n}\n",
+      python: "def two_sum(nums, target):\n    seen = {}\n    for i, num in enumerate(nums):\n        if target - num in seen:\n            return [seen[target - num], i]\n        seen[num] = i\n    return []\n",
+      cpp: "vector<int> twoSum(const vector<int>& nums, int target) {\n    unordered_map<int, int> seen;\n    for (int i = 0; i < (int)nums.size(); i++) {\n        if (seen.count(target - nums[i])) return {seen[target - nums[i]], i};\n        seen[nums[i]] = i;\n    }\n    return {};\n}\n"
     }
   },
   'valid-parentheses': {
@@ -76,9 +81,14 @@ const curated = {
       { input: '(]', output: 'false' }
     ],
     templates: {
-      javascript: "const s = require('fs').readFileSync(0, 'utf8').trim();\n// 在这里写你的解法\nconst pairs = {')':'(', ']':'[', '}':'{'};\nconst stack = [];\nfor (const char of s) {\n  if ('([{'.includes(char)) stack.push(char);\n  else if (stack.pop() !== pairs[char]) { console.log('false'); process.exit(); }\n}\nconsole.log(stack.length === 0 ? 'true' : 'false');\n",
-      python: "s = input().strip()\n# 在这里写你的解法\npairs = {')': '(', ']': '[', '}': '{'}\nstack = []\nfor char in s:\n    if char in '([{': stack.append(char)\n    elif not stack or stack.pop() != pairs[char]:\n        print('false')\n        break\nelse:\n    print('true' if not stack else 'false')\n",
-      cpp: "#include <iostream>\n#include <stack>\n#include <unordered_map>\nusing namespace std;\nint main(){ string s; cin>>s; stack<char> st; unordered_map<char,char> p={{')','('},{']','['},{'}','{'}}; for(char c:s){ if(c=='('||c=='['||c=='{') st.push(c); else if(st.empty()||st.top()!=p[c]){cout<<\"false\\n\";return 0;} else st.pop(); } cout<<(st.empty()?\"true\":\"false\")<<'\\n'; }\n"
+      javascript: "const s = require('fs').readFileSync(0, 'utf8').trim();\n\nfunction isValid(s) {\n  // TODO: 在这里写你的解法\n  return false;\n}\n\nconsole.log(isValid(s) ? 'true' : 'false');\n",
+      python: "s = input().strip()\n\ndef is_valid(s):\n    # TODO: 在这里写你的解法\n    return False\n\nprint('true' if is_valid(s) else 'false')\n",
+      cpp: "#include <iostream>\n#include <string>\nusing namespace std;\n\nbool isValid(const string& s) {\n    // TODO: 在这里写你的解法\n    return false;\n}\n\nint main() { string s; cin >> s; cout << (isValid(s) ? \"true\" : \"false\") << '\\n'; }\n"
+    },
+    solutions: {
+      javascript: "function isValid(s) {\n  const pairs = { ')': '(', ']': '[', '}': '{' };\n  const stack = [];\n  for (const char of s) {\n    if ('([{'.includes(char)) stack.push(char);\n    else if (stack.pop() !== pairs[char]) return false;\n  }\n  return stack.length === 0;\n}\n",
+      python: "def is_valid(s):\n    pairs = {')': '(', ']': '[', '}': '{'}\n    stack = []\n    for char in s:\n        if char in '([{':\n            stack.append(char)\n        elif not stack or stack.pop() != pairs[char]:\n            return False\n    return not stack\n",
+      cpp: "bool isValid(const string& s) {\n    stack<char> opened;\n    unordered_map<char, char> pairs = {{')', '('}, {']', '['}, {'}', '{'}};\n    for (char c : s) {\n        if (c == '(' || c == '[' || c == '{') opened.push(c);\n        else if (opened.empty() || opened.top() != pairs[c]) return false;\n        else opened.pop();\n    }\n    return opened.empty();\n}\n"
     }
   },
   'best-time-to-buy-and-sell-stock': {
@@ -92,9 +102,14 @@ const curated = {
       { input: '2 4 1', output: '2' }
     ],
     templates: {
-      javascript: "const prices = require('fs').readFileSync(0, 'utf8').trim().split(/\\s+/).map(Number);\n// 在这里写你的解法\nlet low = Infinity, profit = 0;\nfor (const price of prices) { low = Math.min(low, price); profit = Math.max(profit, price - low); }\nconsole.log(profit);\n",
-      python: "prices = list(map(int, input().split()))\n# 在这里写你的解法\nlow, profit = float('inf'), 0\nfor price in prices:\n    low = min(low, price)\n    profit = max(profit, price - low)\nprint(profit)\n",
-      cpp: "#include <iostream>\n#include <climits>\n#include <algorithm>\nusing namespace std;\nint main(){ int x,low=INT_MAX,profit=0; while(cin>>x){low=min(low,x);profit=max(profit,x-low);} cout<<profit<<'\\n'; }\n"
+      javascript: "const prices = require('fs').readFileSync(0, 'utf8').trim().split(/\\s+/).map(Number);\n\nfunction maxProfit(prices) {\n  // TODO: 在这里写你的解法\n  return 0;\n}\n\nconsole.log(maxProfit(prices));\n",
+      python: "prices = list(map(int, input().split()))\n\ndef max_profit(prices):\n    # TODO: 在这里写你的解法\n    return 0\n\nprint(max_profit(prices))\n",
+      cpp: "#include <iostream>\n#include <vector>\nusing namespace std;\n\nint maxProfit(const vector<int>& prices) {\n    // TODO: 在这里写你的解法\n    return 0;\n}\n\nint main() { vector<int> prices; int value; while (cin >> value) prices.push_back(value); cout << maxProfit(prices) << '\\n'; }\n"
+    },
+    solutions: {
+      javascript: "function maxProfit(prices) {\n  let lowest = Infinity;\n  let best = 0;\n  for (const price of prices) {\n    lowest = Math.min(lowest, price);\n    best = Math.max(best, price - lowest);\n  }\n  return best;\n}\n",
+      python: "def max_profit(prices):\n    lowest = float('inf')\n    best = 0\n    for price in prices:\n        lowest = min(lowest, price)\n        best = max(best, price - lowest)\n    return best\n",
+      cpp: "int maxProfit(const vector<int>& prices) {\n    int lowest = INT_MAX, best = 0;\n    for (int price : prices) {\n        lowest = min(lowest, price);\n        best = max(best, price - lowest);\n    }\n    return best;\n}\n"
     }
   }
 };
@@ -144,7 +159,8 @@ for (const company of companyDirs) {
           input: extra.input || '',
           output: extra.output || '',
           examples: extra.examples || [],
-          templates: extra.templates || {}
+          templates: extra.templates || {},
+          solutions: extra.solutions || {}
         };
         problemMap.set(slug, problem);
       }

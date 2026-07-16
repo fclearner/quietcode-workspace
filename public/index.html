@@ -161,10 +161,11 @@
       </div>
       <div class="workspace-grid">
         <article class="description-pane panel">
-          <div class="tabs"><button class="active" data-desc-tab="description">题目描述</button><button data-desc-tab="solutions">笔记</button><button data-desc-tab="submissions">提交记录</button></div>
+          <div class="tabs"><button class="active" data-desc-tab="description">题目描述</button><button data-desc-tab="solutions">笔记</button><button data-desc-tab="submissions">提交记录</button><button id="referenceTab" class="hidden" data-desc-tab="reference">参考实现</button></div>
           <div id="descriptionContent" class="description-content"></div>
           <div id="notesContent" class="notes-content hidden"><textarea id="notesEditor" placeholder="记录思路、复杂度和易错点…"></textarea><small>自动保存在本地</small></div>
           <div id="problemSubmissions" class="problem-submissions hidden"></div>
+          <div id="referenceContent" class="reference-content hidden"></div>
         </article>
         <section class="coding-pane">
           <div class="editor-card panel">
@@ -179,7 +180,7 @@
               <label>预期输出</label><textarea id="caseExpected" spellcheck="false"></textarea>
               <button id="addCase" class="add-case">＋ 添加自定义用例</button>
             </div>
-            <div id="resultPanel" class="result-panel hidden"><div id="resultHeadline"></div><pre id="resultOutput"></pre><div id="coachFeedback" class="coach-feedback hidden"></div></div>
+            <div id="resultPanel" class="result-panel hidden"><div id="resultHeadline"></div><pre id="resultOutput"></pre><div id="coachFeedback" class="coach-feedback hidden"></div><div id="solutionReveal" class="solution-reveal hidden"></div></div>
           </div>
         </section>
       </div>
