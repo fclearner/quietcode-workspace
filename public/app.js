@@ -5,10 +5,12 @@ const difficultyName = { easy: '简单', medium: '中等', hard: '困难', unkno
 const languageName = { javascript: 'JavaScript', python: 'Python 3', cpp: 'C++17' };
 const STORAGE_KEY = 'workspace-state-v1';
 const PAGE_SIZE = 25;
+const hiddenCaseCounts = { 'two-sum': 27, 'valid-parentheses': 35, 'best-time-to-buy-and-sell-stock': 30 };
+const JUDGE_VERSION = 1;
 
 const defaultState = {
-  solved: {}, attempted: {}, favorites: [], submissions: [], drafts: {}, notes: {}, customCases: {},
-  settings: { theme: 'light', defaultLanguage: 'javascript', dailyGoal: 1, fontSize: 13 }, templateVersion: 2
+  solved: {}, attempted: {}, favorites: [], submissions: [], drafts: {}, notes: {}, customCases: {}, coachChats: {},
+  settings: { theme: 'light', defaultLanguage: 'javascript', dailyGoal: 1, fontSize: 13 }, templateVersion: 2, judgeVersion: JUDGE_VERSION
 };
 
 let data = { problems: [], companies: [] };
@@ -20,6 +22,8 @@ let activeLanguage = '';
 let dailyProblem = null;
 let guide = null;
 let toastTimer;
+let coachPending = false;
+const lastExecutionByProblem = new Map();
 
 function loadState() {
   try {
@@ -53,6 +57,11 @@ function loadState() {
         }
       }
       merged.templateVersion = 2;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+    }
+    if (saved && saved.judgeVersion !== JUDGE_VERSION) {
+      Object.keys(hiddenCaseCounts).forEach((slug) => { delete merged.solved[slug]; });
+      merged.judgeVersion = JUDGE_VERSION;
       localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
     }
     return merged;
@@ -351,6 +360,7 @@ function openProblem(slug, updateHash = true) {
   renderCases();
   renderSubmissions($('#problemSubmissions'), slug);
   renderReference();
+  if (!$('#coachDrawer').classList.contains('hidden')) renderCoachChat();
   switchDescTab('description');
   switchConsoleTab('cases');
 }
@@ -419,7 +429,9 @@ function renderCases() {
   const cases = allCases();
   currentCase = Math.min(currentCase, cases.length - 1);
   const baseLength = currentProblem.examples?.length || 0;
-  $('#caseTabs').innerHTML = cases.map((_, index) => `<button class="${index === currentCase ? 'active' : ''} ${index >= baseLength ? 'custom' : ''}" data-case="${index}">用例 ${index + 1}</button>`).join('');
+  const hiddenCount = hiddenCaseCounts[currentProblem.slug] || 0;
+  $('#caseTabs').innerHTML = cases.map((_, index) => `<button class="${index === currentCase ? 'active' : ''} ${index >= baseLength ? 'custom' : ''}" data-case="${index}">用例 ${index + 1}</button>`).join('')
+    + (hiddenCount ? `<span class="hidden-case-note">提交另测 ${hiddenCount} 个隐藏用例</span>` : '');
   $('#caseInput').value = cases[currentCase]?.input || '';
   $('#caseExpected').value = cases[currentCase]?.output || '';
 }
@@ -454,7 +466,7 @@ async function executeCode(kind) {
     const judgeTests = allCases().filter((test) => String(test.output || '').trim());
     if (kind === 'submit') {
       if (!judgeTests.length) throw new Error('请至少填写一个测试用例的预期输出，再进行提交');
-      response = await fetch('/api/judge', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ language, code, tests: judgeTests }) });
+      response = await fetch('/api/judge', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ slug: currentProblem.slug, language, code, tests: judgeTests }) });
     } else {
       const test = allCases()[currentCase];
       response = await fetch('/api/run', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ language, code, input: test.input }) });
@@ -463,9 +475,11 @@ async function executeCode(kind) {
     if (!response.ok) throw new Error(result.error || '执行失败');
     const passed = kind === 'submit' ? result.passed : result.exitCode === 0 && !result.timedOut;
     const execution = result.results?.at(-1) || result;
+    lastExecutionByProblem.set(currentProblem.slug, { kind, passed, text: formatExecution(execution) });
     if (kind === 'submit') {
       $('#resultHeadline').innerHTML = `<span class="result-title ${passed ? 'success' : 'error'}">${passed ? '通过全部测试' : `未通过 · ${result.passedCount}/${result.total}`}</span>`;
-      $('#resultOutput').textContent = passed ? `恭喜！全部 ${result.total} 个测试用例均已通过。` : formatExecution(execution);
+      const coverage = result.hiddenCount ? `，其中 ${result.hiddenCount} 个为隐藏用例` : '；当前题目暂无服务端隐藏用例';
+      $('#resultOutput').textContent = passed ? `恭喜！全部 ${result.total} 个测试用例均已通过${coverage}。` : formatExecution(execution);
     } else {
       $('#resultHeadline').innerHTML = `<span class="result-title ${passed ? 'success' : 'error'}">${passed ? '运行完成' : '运行失败'}</span>`;
       $('#resultOutput').textContent = formatExecution(execution);
@@ -491,11 +505,13 @@ async function executeCode(kind) {
       $('#solutionReveal').classList.remove('hidden');
       renderReference();
     }
+    if (!$('#coachDrawer').classList.contains('hidden')) renderCoachChat();
     showToast(kind === 'submit' ? (passed ? '已通过，学习计划同步更新' : '未通过，已调整巩固优先级') : '运行完成');
   } catch (error) {
     $('#resultHeadline').innerHTML = '<span class="result-title error">执行服务出错</span>';
     $('#resultOutput').textContent = error.message;
     $('#resultDot').className = 'error';
+    lastExecutionByProblem.set(currentProblem.slug, { kind, passed: false, text: error.message });
   } finally {
     button.disabled = false;
     button.textContent = original;
@@ -505,9 +521,10 @@ async function executeCode(kind) {
 function formatExecution(result) {
   if (!result) return '没有运行结果';
   const parts = [];
+  if (result.hidden) parts.push(result.passed ? '隐藏用例通过。' : '隐藏用例未通过。具体输入、预期输出和实际输出不公开；可打开“问教练”结合当前代码排查边界条件。');
   if (result.timedOut) parts.push('执行超时（5 秒）');
-  if (result.expected !== undefined) parts.push(`输入：\n${result.input}\n\n预期输出：\n${result.expected}\n\n实际输出：\n${result.actual || '(空)'}`);
-  else parts.push(`标准输出：\n${result.stdout || '(空)'}`);
+  if (!result.hidden && result.expected !== undefined) parts.push(`输入：\n${result.input}\n\n预期输出：\n${result.expected}\n\n实际输出：\n${result.actual || '(空)'}`);
+  else if (!result.hidden) parts.push(`标准输出：\n${result.stdout || '(空)'}`);
   if (result.stderr) parts.push(`错误输出：\n${result.stderr}`);
   if (result.truncated) parts.push('输出过长，已截断。');
   return parts.join('\n\n');
@@ -562,6 +579,95 @@ function updateLineNumbers() {
   $('#lineNumbers').textContent = Array.from({ length: count }, (_, index) => index + 1).join('\n');
 }
 
+function currentCoachHistory() {
+  if (!currentProblem) return [];
+  state.coachChats ||= {};
+  state.coachChats[currentProblem.slug] ||= [];
+  return state.coachChats[currentProblem.slug];
+}
+
+function renderCoachChat() {
+  if (!currentProblem) return;
+  const language = $('#languageSelect').value;
+  const status = state.solved[currentProblem.slug] ? '已完成，可讨论完整实现' : '练习中，只提供分层提示';
+  $('#coachContext').innerHTML = `<strong>${escapeHtml(currentProblem.title)}</strong> · ${languageName[language]} · ${status}`;
+  const history = currentCoachHistory();
+  const greeting = history.length ? '' : `<div class="coach-message"><span class="mini-avatar">✦</span><div class="bubble">我已经看到了当前题目、代码和测试用例。你可以直接说卡在哪里；我会先给最小提示，不会一上来把答案贴出来。</div></div>`;
+  const messages = history.map((item) => item.role === 'user'
+    ? `<div class="coach-message user"><div class="bubble">${escapeHtml(item.content)}</div></div>`
+    : `<div class="coach-message"><span class="mini-avatar">✦</span><div class="bubble">${escapeHtml(item.content)}</div></div>`).join('');
+  const loading = coachPending ? '<div class="coach-message loading"><span class="mini-avatar">✦</span><div class="bubble">正在看你的代码 <i></i><i></i><i></i></div></div>' : '';
+  $('#coachMessages').innerHTML = greeting + messages + loading;
+  $('#sendCoach').disabled = coachPending;
+  requestAnimationFrame(() => { $('#coachMessages').scrollTop = $('#coachMessages').scrollHeight; });
+}
+
+function openCoach() {
+  if (!currentProblem) return showToast('请先打开一项内容');
+  $('#coachDrawer').classList.remove('hidden');
+  renderCoachChat();
+  setTimeout(() => $('#coachInput').focus(), 100);
+}
+
+function closeCoach() {
+  $('#coachDrawer').classList.add('hidden');
+}
+
+async function sendCoachMessage(prefilled = '') {
+  if (!currentProblem || coachPending) return;
+  const problem = currentProblem;
+  const problemSlug = problem.slug;
+  const message = (prefilled || $('#coachInput').value).trim();
+  if (!message) return;
+  const history = currentCoachHistory();
+  const previous = history.slice(-10);
+  history.push({ role: 'user', content: message, createdAt: new Date().toISOString() });
+  state.coachChats[problemSlug] = history.slice(-30);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  $('#coachInput').value = '';
+  $('#coachInput').style.height = '';
+  coachPending = true;
+  renderCoachChat();
+  const test = allCases()[currentCase] || {};
+  const lastExecution = lastExecutionByProblem.get(problemSlug);
+  try {
+    const response = await fetch('/api/coach', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message,
+        history: previous,
+        context: {
+          title: problem.title,
+          difficulty: problem.difficulty,
+          topics: problem.topics,
+          summary: problem.summary,
+          inputFormat: problem.input,
+          outputFormat: problem.output,
+          language: $('#languageSelect').value,
+          code: $('#codeEditor').value,
+          testInput: test.input || '',
+          expectedOutput: test.output || '',
+          lastResult: lastExecution?.text || '',
+          solved: Boolean(state.solved[problemSlug]),
+          learningAdvice: adviceForProblem(problem),
+          weakTopics: guide?.weakTopics?.map((item) => item.topic) || []
+        }
+      })
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || '教练暂时无法回复');
+    state.coachChats[problemSlug].push({ role: 'assistant', content: result.answer, createdAt: new Date().toISOString() });
+  } catch (error) {
+    state.coachChats[problemSlug].push({ role: 'assistant', content: `暂时没能连接到教练：${error.message}`, createdAt: new Date().toISOString() });
+  } finally {
+    state.coachChats[problemSlug] = state.coachChats[problemSlug].slice(-30);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    coachPending = false;
+    if (currentProblem?.slug === problemSlug) renderCoachChat();
+  }
+}
+
 function bindEvents() {
   window.addEventListener('hashchange', route);
   $$('.nav-item').forEach((button) => button.addEventListener('click', () => { location.hash = `#/${button.dataset.view}`; }));
@@ -588,11 +694,11 @@ function bindEvents() {
   $('#companyGrid').addEventListener('click', (event) => { const card = event.target.closest('[data-company]'); if (!card) return; filters.company = card.dataset.company; $('#companyFilter').value = filters.company; filters.page = 1; location.hash = '#/problems'; setTimeout(renderProblems); });
   $('#backToList').addEventListener('click', () => { location.hash = '#/problems'; renderProblems(); });
   $('#workspaceFavorite').addEventListener('click', () => currentProblem && toggleFavorite(currentProblem.slug));
-  $('#workspaceGuide').addEventListener('click', () => { location.hash = '#/guide'; });
+  $('#workspaceGuide').addEventListener('click', openCoach);
   $('#runBtn').addEventListener('click', () => executeCode('run'));
   $('#submitBtn').addEventListener('click', () => executeCode('submit'));
   $('#resetCode').addEventListener('click', () => { if (confirm('确定恢复当前语言的初始代码吗？')) { $('#codeEditor').value = defaultTemplate($('#languageSelect').value); saveDraft(); updateLineNumbers(); } });
-  $('#languageSelect').addEventListener('change', (event) => { saveDraft(activeLanguage); loadDraft(event.target.value); renderReference(); });
+  $('#languageSelect').addEventListener('change', (event) => { saveDraft(activeLanguage); loadDraft(event.target.value); renderReference(); if (!$('#coachDrawer').classList.contains('hidden')) renderCoachChat(); });
   $('#codeEditor').addEventListener('input', () => { $('#saveState').textContent = '保存中…'; updateLineNumbers(); clearTimeout($('#codeEditor').saveTimer); $('#codeEditor').saveTimer = setTimeout(saveDraft, 450); });
   $('#codeEditor').addEventListener('scroll', () => { $('#lineNumbers').scrollTop = $('#codeEditor').scrollTop; });
   $('#codeEditor').addEventListener('keydown', (event) => { if (event.key === 'Tab') { event.preventDefault(); const editor = event.target; editor.setRangeText('  ', editor.selectionStart, editor.selectionEnd, 'end'); editor.dispatchEvent(new Event('input')); } });
@@ -611,7 +717,14 @@ function bindEvents() {
   $('#reviewList').addEventListener('click', (event) => { const item = event.target.closest('[data-guide-slug]'); if (item) openProblem(item.dataset.guideSlug); });
   $('#clearSubmissions').addEventListener('click', () => { if (confirm('确定清空全部提交记录吗？')) { state.submissions = []; saveState(); renderSubmissions(); } });
   $('#importDataBtn').addEventListener('click', () => $('#importFile').click());
-  $('#importFile').addEventListener('change', async (event) => { try { const parsed = JSON.parse(await event.target.files[0].text()); if (!parsed.state) throw new Error('备份格式无效'); state = { ...structuredClone(defaultState), ...parsed.state, settings: { ...defaultState.settings, ...parsed.state.settings } }; saveState(); applyTheme(); await refreshGuide(); showToast('进度导入成功'); } catch (error) { showToast(error.message); } });
+  $('#importFile').addEventListener('change', async (event) => { try { const parsed = JSON.parse(await event.target.files[0].text()); if (!parsed.state) throw new Error('备份格式无效'); state = { ...structuredClone(defaultState), ...parsed.state, settings: { ...defaultState.settings, ...parsed.state.settings } }; if (parsed.state.judgeVersion !== JUDGE_VERSION) { Object.keys(hiddenCaseCounts).forEach((slug) => { delete state.solved[slug]; }); state.judgeVersion = JUDGE_VERSION; } saveState(); applyTheme(); await refreshGuide(); showToast('进度导入成功'); } catch (error) { showToast(error.message); } });
+  $('#closeCoach').addEventListener('click', closeCoach);
+  $('#clearCoachChat').addEventListener('click', () => { if (!currentProblem || !confirm('清空当前题目的教练对话吗？')) return; state.coachChats[currentProblem.slug] = []; localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); renderCoachChat(); });
+  $('#sendCoach').addEventListener('click', () => sendCoachMessage());
+  $('#coachQuickPrompts').addEventListener('click', (event) => { const button = event.target.closest('[data-coach-prompt]'); if (button) sendCoachMessage(button.dataset.coachPrompt); });
+  $('#coachInput').addEventListener('keydown', (event) => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); sendCoachMessage(); } });
+  $('#coachInput').addEventListener('input', (event) => { event.target.style.height = ''; event.target.style.height = `${Math.min(120, event.target.scrollHeight)}px`; });
+  document.addEventListener('keydown', (event) => { if (event.key === 'Escape' && !$('#coachDrawer').classList.contains('hidden')) closeCoach(); });
 }
 
 init();

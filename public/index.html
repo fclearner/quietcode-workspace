@@ -157,7 +157,7 @@
     <section id="workspaceView" class="workspace hidden">
       <div class="workspace-bar">
         <div><button id="backToList" class="back-button">← 目录</button><span class="crumb">/</span><strong id="workspaceTitle">详情</strong></div>
-        <div class="workspace-actions"><button id="workspaceGuide" class="secondary-button">学习建议</button><button id="workspaceFavorite" class="tool-button">☆</button><button id="resetCode" class="secondary-button">重置代码</button><button id="runBtn" class="run-button">▶ 运行</button><button id="submitBtn" class="submit-button">提交</button></div>
+        <div class="workspace-actions"><button id="workspaceGuide" class="coach-button">✦ 问教练</button><button id="workspaceFavorite" class="tool-button">☆</button><button id="resetCode" class="secondary-button">重置代码</button><button id="runBtn" class="run-button">▶ 运行</button><button id="submitBtn" class="submit-button">提交</button></div>
       </div>
       <div class="workspace-grid">
         <article class="description-pane panel">
@@ -186,6 +186,26 @@
       </div>
     </section>
   </main>
+
+  <aside id="coachDrawer" class="coach-drawer hidden" aria-label="学习教练对话">
+    <header class="coach-head">
+      <div class="coach-identity"><span class="coach-avatar">✦</span><div><strong>学习教练</strong><small><i></i> Codex 已连接</small></div></div>
+      <div><button id="clearCoachChat" title="清空当前对话">↺</button><button id="closeCoach" title="关闭">×</button></div>
+    </header>
+    <div id="coachContext" class="coach-context"></div>
+    <div id="coachMessages" class="coach-messages"></div>
+    <div id="coachQuickPrompts" class="coach-quick-prompts">
+      <button data-coach-prompt="我完全没思路。先问我一个问题，引导我找到突破口，不要给答案。">没思路</button>
+      <button data-coach-prompt="请检查我当前的思路和代码，只指出最关键的一个问题，不要给完整答案。">检查思路</button>
+      <button data-coach-prompt="结合当前测试用例和运行结果，帮我定位失败原因，给一个最小提示。">分析失败用例</button>
+      <button data-coach-prompt="我还需要下一级提示，可以给少量伪代码，但不要给完整实现。">下一级提示</button>
+    </div>
+    <div class="coach-composer">
+      <textarea id="coachInput" rows="2" placeholder="说说你卡在哪里…（Enter 发送）"></textarea>
+      <button id="sendCoach" title="发送">↑</button>
+    </div>
+    <footer>发送即附带当前代码与测试结果到 Codex · 未通过前不直接给答案</footer>
+  </aside>
 
   <dialog id="settingsDialog">
     <form method="dialog">
