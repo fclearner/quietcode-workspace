@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="个人资料与任务工作台">
+  <title>Workspace · 个人工作台</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div id="toast" class="toast" role="status"></div>
+  <header class="topbar">
+    <a class="brand" href="#/problems" aria-label="Workspace 首页">
+      <span class="brand-mark">W</span>
+      <span>Workspace</span>
+    </a>
+    <nav class="main-nav" aria-label="主导航">
+      <button data-view="problems" class="nav-item active">目录</button>
+      <button data-view="companies" class="nav-item">归档</button>
+      <button data-view="progress" class="nav-item">概览</button>
+      <button data-view="submissions" class="nav-item">活动</button>
+    </nav>
+    <div class="top-actions">
+      <div class="streak"><span>◷</span><strong id="streakDays">0</strong><small>连续天数</small></div>
+      <button id="randomBtn" class="icon-button" title="随机一题">↝</button>
+      <button id="themeBtn" class="icon-button" title="切换主题">☾</button>
+      <button id="settingsBtn" class="avatar" title="设置">AL</button>
+    </div>
+  </header>
+
+  <main>
+    <section id="listView" class="page shell">
+      <div class="hero">
+        <div>
+          <span class="eyebrow">PERSONAL WORKSPACE</span>
+          <h1>今天，完成一项计划。</h1>
+          <p>共有 <strong id="heroProblemCount">—</strong> 项资料可供检索，草稿和记录仅保存在当前浏览器。</p>
+        </div>
+        <div class="daily-card" id="dailyCard">
+          <div class="daily-top"><span>今日计划</span><span class="live-dot">待处理</span></div>
+          <h3 id="dailyTitle">正在挑选…</h3>
+          <div class="daily-meta"><span id="dailyDifficulty"></span><span id="dailyTopic"></span></div>
+          <button id="dailyStart" class="primary-button">开始处理 <span>→</span></button>
+        </div>
+      </div>
+
+      <section class="stats-grid" aria-label="练习统计">
+        <article class="stat-card"><div class="ring" id="progressRing"><span id="solvedTotal">0</span></div><div><small>已解决</small><strong id="solvedRatio">0 / 0</strong><p>继续保持节奏</p></div></article>
+        <article class="stat-card compact"><div class="stat-icon green">✓</div><div><small>今日完成</small><strong id="todaySolved">0</strong><p id="todayHint">再完成 1 题达成目标</p></div></article>
+        <article class="stat-card compact"><div class="stat-icon purple">◎</div><div><small>提交通过率</small><strong id="acceptRate">—</strong><p id="submissionCount">暂无提交</p></div></article>
+        <article class="stat-card compact"><div class="stat-icon orange">⚑</div><div><small>收藏题目</small><strong id="favoriteCount">0</strong><p>稍后集中练习</p></div></article>
+      </section>
+
+      <div class="content-layout">
+        <aside class="filters-panel">
+          <div class="filter-title"><strong>筛选</strong><button id="resetFilters">重置</button></div>
+          <label class="filter-label">难度</label>
+          <div class="difficulty-filter">
+            <button data-difficulty="easy"><i class="dot easy"></i>简单 <span id="easyCount">0</span></button>
+            <button data-difficulty="medium"><i class="dot medium"></i>中等 <span id="mediumCount">0</span></button>
+            <button data-difficulty="hard"><i class="dot hard"></i>困难 <span id="hardCount">0</span></button>
+          </div>
+          <label class="filter-label" for="companyFilter">公司</label>
+          <select id="companyFilter"><option value="">全部公司</option></select>
+          <label class="filter-label">状态</label>
+          <div class="status-filter">
+            <button data-status="solved">✓ 已解决</button>
+            <button data-status="attempted">◔ 尝试过</button>
+            <button data-status="favorite">☆ 已收藏</button>
+          </div>
+          <label class="filter-label">热门标签</label>
+          <div id="topicCloud" class="topic-cloud"></div>
+        </aside>
+
+        <section class="problem-section">
+          <div class="list-toolbar">
+            <div class="search-box"><span>⌕</span><input id="searchInput" type="search" placeholder="搜索题目、编号或标签…"><kbd>/</kbd></div>
+            <select id="sortSelect" aria-label="排序">
+              <option value="frequency">公司热度</option>
+              <option value="title">题目名称</option>
+              <option value="acceptance">通过率</option>
+              <option value="difficulty">难度</option>
+            </select>
+            <button id="favoritesOnly" class="tool-button" title="只看收藏">☆</button>
+          </div>
+          <div class="table-card">
+            <div class="problem-table header-row">
+              <span>状态</span><span>题目</span><span>难度</span><span>通过率</span><span>公司</span><span></span>
+            </div>
+            <div id="problemRows" class="problem-rows"><div class="loading-state"><span class="spinner"></span>正在导入题库…</div></div>
+            <div class="pagination">
+              <span id="resultSummary">—</span>
+              <div><button id="prevPage">‹</button><span id="pageLabel">1 / 1</span><button id="nextPage">›</button></div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <section id="companyView" class="page shell hidden">
+      <div class="section-heading"><div><span class="eyebrow">REFERENCE ARCHIVE</span><h1>资料归档</h1><p>按来源查看已收录的资料。</p></div><div class="search-box company-search"><span>⌕</span><input id="companySearch" placeholder="搜索来源…"></div></div>
+      <div id="companyGrid" class="company-grid"></div>
+    </section>
+
+    <section id="progressView" class="page shell hidden">
+      <div class="section-heading"><div><span class="eyebrow">PERSONAL OVERVIEW</span><h1>完成概览</h1><p>所有数据仅存储在当前浏览器。</p></div><button id="exportData" class="secondary-button">导出数据</button></div>
+      <div id="progressDashboard" class="progress-dashboard"></div>
+    </section>
+
+    <section id="submissionsView" class="page shell hidden">
+      <div class="section-heading"><div><span class="eyebrow">ACTIVITY HISTORY</span><h1>活动记录</h1><p>回顾最近的处理与运行记录。</p></div><button id="clearSubmissions" class="danger-button">清空记录</button></div>
+      <div id="submissionList" class="submission-list"></div>
+    </section>
+
+    <section id="workspaceView" class="workspace hidden">
+      <div class="workspace-bar">
+        <div><button id="backToList" class="back-button">← 目录</button><span class="crumb">/</span><strong id="workspaceTitle">详情</strong></div>
+        <div class="workspace-actions"><button id="workspaceFavorite" class="tool-button">☆</button><button id="resetCode" class="secondary-button">重置代码</button><button id="runBtn" class="run-button">▶ 运行</button><button id="submitBtn" class="submit-button">提交</button></div>
+      </div>
+      <div class="workspace-grid">
+        <article class="description-pane panel">
+          <div class="tabs"><button class="active" data-desc-tab="description">题目描述</button><button data-desc-tab="solutions">笔记</button><button data-desc-tab="submissions">提交记录</button></div>
+          <div id="descriptionContent" class="description-content"></div>
+          <div id="notesContent" class="notes-content hidden"><textarea id="notesEditor" placeholder="记录思路、复杂度和易错点…"></textarea><small>自动保存在本地</small></div>
+          <div id="problemSubmissions" class="problem-submissions hidden"></div>
+        </article>
+        <section class="coding-pane">
+          <div class="editor-card panel">
+            <div class="editor-toolbar"><select id="languageSelect"><option value="javascript">JavaScript</option><option value="python">Python 3</option><option value="cpp">C++17</option></select><span id="saveState">已保存</span><button id="fontDown" title="缩小字号">A−</button><button id="fontUp" title="放大字号">A+</button></div>
+            <div class="editor-wrap"><div id="lineNumbers" class="line-numbers">1</div><textarea id="codeEditor" spellcheck="false" aria-label="代码编辑器"></textarea></div>
+          </div>
+          <div class="console-card panel">
+            <div class="tabs console-tabs"><button class="active" data-console-tab="cases">测试用例</button><button data-console-tab="result">运行结果 <i id="resultDot"></i></button><span id="runtimeInfo"></span></div>
+            <div id="casesPanel" class="cases-panel">
+              <div id="caseTabs" class="case-tabs"></div>
+              <label>输入</label><textarea id="caseInput" spellcheck="false"></textarea>
+              <label>预期输出</label><textarea id="caseExpected" spellcheck="false"></textarea>
+              <button id="addCase" class="add-case">＋ 添加自定义用例</button>
+            </div>
+            <div id="resultPanel" class="result-panel hidden"><div id="resultHeadline"></div><pre id="resultOutput"></pre></div>
+          </div>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <dialog id="settingsDialog">
+    <form method="dialog">
+      <div class="dialog-head"><div><span class="eyebrow">PREFERENCES</span><h2>本地设置</h2></div><button value="cancel">×</button></div>
+      <label class="setting-row"><span><strong>深色模式</strong><small>切换页面配色</small></span><input id="darkToggle" type="checkbox"></label>
+      <label class="setting-row"><span><strong>默认语言</strong><small>打开题目时优先使用</small></span><select id="defaultLanguage"><option value="javascript">JavaScript</option><option value="python">Python 3</option><option value="cpp">C++17</option></select></label>
+      <label class="setting-row"><span><strong>每日目标</strong><small>每天计划完成的题目数</small></span><input id="dailyGoal" type="number" min="1" max="20" value="1"></label>
+      <div class="dialog-actions"><button id="importDataBtn" type="button" class="secondary-button">导入进度</button><button value="done" class="primary-button">完成</button><input id="importFile" type="file" accept="application/json" hidden></div>
+    </form>
+  </dialog>
+  <script src="/app.js" defer></script>
+</body>
+</html>
