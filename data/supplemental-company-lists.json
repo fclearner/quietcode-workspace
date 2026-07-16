@@ -1,0 +1,33 @@
+{
+  "sources": [
+    {
+      "id": "snehasishroy-2026-05-24",
+      "label": "Independent company snapshot · 24 May 2026",
+      "url": "https://github.com/snehasishroy/leetcode-companywise-interview-questions",
+      "snapshotDate": "2026-05-24",
+      "entries": [
+        { "id": 88, "slug": "merge-sorted-array", "title": "Merge Sorted Array", "difficulty": "easy", "acceptance": 54.9, "companies": [{ "name": "TikTok", "frequency": 25.0 }] },
+        { "id": 126, "slug": "word-ladder-ii", "title": "Word Ladder II", "difficulty": "hard", "acceptance": 27.7, "companies": [{ "name": "TikTok", "frequency": 25.0 }] },
+        { "id": 2104, "slug": "sum-of-subarray-ranges", "title": "Sum of Subarray Ranges", "difficulty": "medium", "acceptance": 61.1, "companies": [{ "name": "TikTok", "frequency": 25.0 }] },
+        { "id": 218, "slug": "the-skyline-problem", "title": "The Skyline Problem", "difficulty": "hard", "acceptance": 45.4, "companies": [{ "name": "TikTok", "frequency": 25.0 }] },
+        { "id": 226, "slug": "invert-binary-tree", "title": "Invert Binary Tree", "difficulty": "easy", "acceptance": 80.1, "companies": [{ "name": "TikTok", "frequency": 25.0 }] },
+        { "id": 238, "slug": "product-of-array-except-self", "title": "Product of Array Except Self", "difficulty": "medium", "acceptance": 68.9, "companies": [{ "name": "TikTok", "frequency": 37.5 }] },
+        { "id": 556, "slug": "next-greater-element-iii", "title": "Next Greater Element III", "difficulty": "medium", "acceptance": 35.3, "companies": [{ "name": "TikTok", "frequency": 25.0 }] },
+        { "id": 987, "slug": "vertical-order-traversal-of-a-binary-tree", "title": "Vertical Order Traversal of a Binary Tree", "difficulty": "hard", "acceptance": 53.8, "companies": [{ "name": "TikTok", "frequency": 25.0 }] },
+        { "id": 1257, "slug": "smallest-common-region", "title": "Smallest Common Region", "difficulty": "medium", "acceptance": 68.3, "companies": [{ "name": "TikTok", "frequency": 25.0 }] },
+        { "id": 1541, "slug": "minimum-insertions-to-balance-a-parentheses-string", "title": "Minimum Insertions to Balance a Parentheses String", "difficulty": "medium", "acceptance": 53.5, "companies": [{ "name": "TikTok", "frequency": 25.0 }] },
+        { "id": 1094, "slug": "car-pooling", "title": "Car Pooling", "difficulty": "medium", "acceptance": 56.4, "companies": [{ "name": "TikTok", "frequency": 25.0 }] },
+        { "id": 44, "slug": "wildcard-matching", "title": "Wildcard Matching", "difficulty": "hard", "acceptance": 32.0, "companies": [{ "name": "TikTok", "frequency": 25.0 }] }
+      ]
+    },
+    {
+      "id": "ombharatiya-2025-2026-curated",
+      "label": "ByteDance / TikTok 2025–2026 curated list",
+      "url": "https://github.com/ombharatiya/FAANG-Coding-Interview-Questions",
+      "snapshotDate": "2026-05-18",
+      "entries": [
+        { "id": 2163, "slug": "minimum-difference-in-sums-after-removal-of-elements", "title": "Minimum Difference in Sums After Removal of Elements", "difficulty": "hard", "companies": [{ "name": "ByteDance", "frequency": 25.0 }, { "name": "TikTok", "frequency": 25.0 }] }
+      ]
+    }
+  ]
+}

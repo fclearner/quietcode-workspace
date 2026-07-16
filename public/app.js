@@ -359,8 +359,10 @@ function renderDescription() {
   const p = currentProblem;
   const hasDetails = Boolean(p.summary);
   const companies = p.companies.slice().sort((a, b) => b.frequency - a.frequency).slice(0, 18);
+  const supplemental = (p.supplementalSources || []).map((source) => `<a href="${escapeHtml(source.url)}" target="_blank" rel="noreferrer">${escapeHtml(source.label)} · ${escapeHtml(source.snapshotDate)} ↗</a>`).join('');
   $('#descriptionContent').innerHTML = `<div class="problem-heading"><h1>${escapeHtml(`${p.id ? `${p.id}. ` : ''}${p.title}`)}</h1><a href="${escapeHtml(p.link)}" target="_blank" rel="noreferrer" title="查看来源页面">↗</a></div>
     <div class="description-meta"><span class="difficulty-badge ${p.difficulty}">${difficultyName[p.difficulty]}</span>${p.topics.map((topic) => `<span>${escapeHtml(topic)}</span>`).join('')}</div>
+    ${supplemental ? `<div class="source-notice"><small>补充题单来源</small>${supplemental}</div>` : ''}
     <div class="problem-guidance"><small>学习建议</small><p>${escapeHtml(adviceForProblem(p))}</p></div>
     ${hasDetails ? `<p>${escapeHtml(p.summary)}</p><h3>输入格式</h3><p>${escapeHtml(p.input).replaceAll('\n', '<br>')}</p><h3>输出格式</h3><p>${escapeHtml(p.output)}</p><h3>示例</h3>${p.examples.map((example, i) => `<div class="example-box"><strong>示例 ${i + 1}</strong><pre>输入：${escapeHtml(example.input)}\n输出：${escapeHtml(example.output)}</pre></div> `).join('')}` : `<div class="external-notice"><strong>详细内容未包含在本地资料中</strong><p>当前页面已导入条目元数据。可在 <a href="${escapeHtml(p.link)}" target="_blank" rel="noreferrer">来源页面 ↗</a> 查看详细内容，然后在右侧使用自定义输入运行代码。</p></div>`}
     <section class="company-frequency"><h3>出现过的公司 · ${p.companies.length}</h3><div>${companies.map((item) => `<span>${escapeHtml(item.name)} · ${item.frequency.toFixed(1)}</span>`).join('')}</div></section>`;

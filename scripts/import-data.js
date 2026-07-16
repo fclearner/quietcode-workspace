@@ -5,6 +5,7 @@ const appRoot = path.resolve(__dirname, '..');
 const sourceRoot = path.resolve(appRoot, '..', 'leetcode-company-wise-problems');
 const outputDir = path.join(appRoot, 'data');
 const outputFile = path.join(outputDir, 'problems.json');
+const supplementalFile = path.join(outputDir, 'supplemental-company-lists.json');
 
 function parseCsv(text) {
   const rows = [];
@@ -180,6 +181,46 @@ for (const company of companyDirs) {
   }
 }
 
+const supplementalSources = fs.existsSync(supplementalFile)
+  ? JSON.parse(fs.readFileSync(supplementalFile, 'utf8')).sources || []
+  : [];
+
+for (const source of supplementalSources) {
+  for (const entry of source.entries || []) {
+    let problem = problemMap.get(entry.slug);
+    if (!problem) {
+      problem = {
+        slug: entry.slug,
+        id: entry.id || null,
+        title: entry.title || entry.slug,
+        difficulty: entry.difficulty || 'unknown',
+        acceptance: entry.acceptance ?? null,
+        link: `https://leetcode.com/problems/${entry.slug}`,
+        topics: entry.topics || [],
+        companies: [],
+        summary: '', input: '', output: '', examples: [], templates: {}, solutions: {}
+      };
+      problemMap.set(entry.slug, problem);
+    }
+    if (!problem.id && entry.id) problem.id = entry.id;
+    if (entry.acceptance != null && (problem.acceptance == null || entry.acceptance > problem.acceptance)) problem.acceptance = entry.acceptance;
+    problem.supplementalSources ||= [];
+    if (!problem.supplementalSources.some((item) => item.id === source.id)) {
+      problem.supplementalSources.push({ id: source.id, label: source.label, url: source.url, snapshotDate: source.snapshotDate });
+    }
+    for (const company of entry.companies || []) {
+      const existing = problem.companies.find((item) => item.name === company.name);
+      const period = `supplement:${source.snapshotDate}`;
+      if (existing) {
+        existing.frequency = Math.max(existing.frequency, company.frequency || 0);
+        if (!existing.periods.includes(period)) existing.periods.push(period);
+      } else {
+        problem.companies.push({ name: company.name, frequency: company.frequency || 0, periods: [period] });
+      }
+    }
+  }
+}
+
 const problems = [...problemMap.values()].sort((a, b) => {
   if (a.id && b.id) return a.id - b.id;
   if (a.id) return -1;
@@ -191,8 +232,9 @@ fs.mkdirSync(outputDir, { recursive: true });
 fs.writeFileSync(outputFile, JSON.stringify({
   generatedAt: new Date().toISOString(),
   source: 'https://github.com/liquidslr/leetcode-company-wise-problems',
+  supplementalSources: supplementalSources.map(({ entries, ...source }) => ({ ...source, entryCount: entries.length })),
   companies: companyDirs,
   problems
 }));
 
-console.log(`Imported ${problems.length} unique problems from ${companyDirs.length} companies.`);
+console.log(`Imported ${problems.length} unique problems from ${companyDirs.length} companies, including ${supplementalSources.reduce((sum, source) => sum + source.entries.length, 0)} supplemental company tags.`);

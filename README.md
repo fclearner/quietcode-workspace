@@ -38,6 +38,10 @@ npm start
 - 完成超过七天的内容进入间隔复盘候选。
 - 画像只使用本地练习记录，不上传代码或个人信息到外部服务。
 
+## 补充公司题单
+
+主数据之外，导入脚本还会合并 [`data/supplemental-company-lists.json`](data/supplemental-company-lists.json)。当前补充了两个独立 GitHub 来源中主快照缺少的 13 个 ByteDance/TikTok 候选，并在题目详情保留来源和快照日期。补充数据不会覆盖更新主快照中的更高题频。
+
 ## 数据说明
 
 上游仓库只有题目元数据，并不提供题面、函数签名、隐藏测试或官方答案。因此：
