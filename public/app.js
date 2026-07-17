@@ -5,8 +5,20 @@ const difficultyName = { easy: '简单', medium: '中等', hard: '困难', unkno
 const languageName = { javascript: 'JavaScript', python: 'Python 3', cpp: 'C++17' };
 const STORAGE_KEY = 'workspace-state-v1';
 const PAGE_SIZE = 25;
-const hiddenCaseCounts = { 'two-sum': 27, 'valid-parentheses': 35, 'best-time-to-buy-and-sell-stock': 30 };
-const JUDGE_VERSION = 1;
+const hiddenCaseCounts = { 'two-sum': 27, 'valid-parentheses': 35, 'best-time-to-buy-and-sell-stock': 30, 'lru-cache': 25 };
+const JUDGE_VERSION = 2;
+const judgeMigrations = {
+  1: ['two-sum', 'valid-parentheses', 'best-time-to-buy-and-sell-stock'],
+  2: ['lru-cache']
+};
+
+function migrateJudgeState(target, savedVersion) {
+  const version = Number(savedVersion) || 0;
+  for (let next = version + 1; next <= JUDGE_VERSION; next += 1) {
+    (judgeMigrations[next] || []).forEach((slug) => { delete target.solved[slug]; });
+  }
+  target.judgeVersion = JUDGE_VERSION;
+}
 
 const defaultState = {
   solved: {}, attempted: {}, favorites: [], submissions: [], drafts: {}, notes: {}, customCases: {}, coachChats: {},
@@ -60,8 +72,7 @@ function loadState() {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
     }
     if (saved && saved.judgeVersion !== JUDGE_VERSION) {
-      Object.keys(hiddenCaseCounts).forEach((slug) => { delete merged.solved[slug]; });
-      merged.judgeVersion = JUDGE_VERSION;
+      migrateJudgeState(merged, saved.judgeVersion);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
     }
     return merged;
@@ -717,7 +728,7 @@ function bindEvents() {
   $('#reviewList').addEventListener('click', (event) => { const item = event.target.closest('[data-guide-slug]'); if (item) openProblem(item.dataset.guideSlug); });
   $('#clearSubmissions').addEventListener('click', () => { if (confirm('确定清空全部提交记录吗？')) { state.submissions = []; saveState(); renderSubmissions(); } });
   $('#importDataBtn').addEventListener('click', () => $('#importFile').click());
-  $('#importFile').addEventListener('change', async (event) => { try { const parsed = JSON.parse(await event.target.files[0].text()); if (!parsed.state) throw new Error('备份格式无效'); state = { ...structuredClone(defaultState), ...parsed.state, settings: { ...defaultState.settings, ...parsed.state.settings } }; if (parsed.state.judgeVersion !== JUDGE_VERSION) { Object.keys(hiddenCaseCounts).forEach((slug) => { delete state.solved[slug]; }); state.judgeVersion = JUDGE_VERSION; } saveState(); applyTheme(); await refreshGuide(); showToast('进度导入成功'); } catch (error) { showToast(error.message); } });
+  $('#importFile').addEventListener('change', async (event) => { try { const parsed = JSON.parse(await event.target.files[0].text()); if (!parsed.state) throw new Error('备份格式无效'); state = { ...structuredClone(defaultState), ...parsed.state, settings: { ...defaultState.settings, ...parsed.state.settings } }; if (parsed.state.judgeVersion !== JUDGE_VERSION) migrateJudgeState(state, parsed.state.judgeVersion); saveState(); applyTheme(); await refreshGuide(); showToast('进度导入成功'); } catch (error) { showToast(error.message); } });
   $('#closeCoach').addEventListener('click', closeCoach);
   $('#clearCoachChat').addEventListener('click', () => { if (!currentProblem || !confirm('清空当前题目的教练对话吗？')) return; state.coachChats[currentProblem.slug] = []; localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); renderCoachChat(); });
   $('#sendCoach').addEventListener('click', () => sendCoachMessage());

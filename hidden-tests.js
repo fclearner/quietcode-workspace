@@ -18,6 +18,31 @@ function bestStockProfit(prices) {
   return best;
 }
 
+function runLruProgram(input) {
+  const lines = input.trim().split(/\n/);
+  const capacity = Number(lines[0]);
+  const cache = new Map();
+  const output = [];
+  for (const line of lines.slice(1)) {
+    const [operation, keyText, valueText] = line.split(/\s+/);
+    const key = Number(keyText);
+    if (operation === 'get') {
+      if (!cache.has(key)) output.push('-1');
+      else {
+        const value = cache.get(key);
+        cache.delete(key);
+        cache.set(key, value);
+        output.push(String(value));
+      }
+      continue;
+    }
+    if (cache.has(key)) cache.delete(key);
+    cache.set(key, Number(valueText));
+    if (cache.size > capacity) cache.delete(cache.keys().next().value);
+  }
+  return output.join('\n');
+}
+
 const twoSumCases = [
   ['1 4 6 8\n10', '1 2'],
   ['-3 4 3 90\n0', '0 2'],
@@ -71,10 +96,38 @@ const stockInputs = [
   [...Array.from({ length: 150 }, (_, index) => 500 - index), ...Array.from({ length: 150 }, (_, index) => index * 4)]
 ];
 
+const lruInputs = [
+  '1\nget 1\nput 1 7\nget 1\nput 2 8\nget 1\nget 2',
+  '2\nput 1 1\nput 2 2\nget 1\nput 3 3\nget 1\nget 2\nget 3',
+  '3\nput 1 10\nput 2 20\nput 3 30\nget 1\nput 4 40\nget 2\nget 3\nget 4',
+  '2\nput 1 1\nput 1 2\nget 1\nput 2 2\nput 3 3\nget 1\nget 2\nget 3',
+  '3\nget 9\nput 9 90\nput 8 80\nget 9\nput 7 70\nput 6 60\nget 8\nget 9\nget 6',
+  '4\nput 1 5\nput 2 6\nput 3 7\nput 4 8\nget 1\nget 2\nput 5 9\nget 3\nget 4\nget 5',
+  '1\nput 5 1\nput 5 2\nput 5 3\nget 5\nput 6 4\nget 5\nget 6',
+  '2\nput 0 0\nget 0\nput 1 0\nput 2 0\nget 0\nget 1\nget 2',
+  '5\nput 1 1\nput 2 4\nput 3 9\nput 4 16\nput 5 25\nget 3\nget 1\nput 6 36\nget 2\nget 5\nget 6',
+  '3\nput 10 100\nput 20 200\nget 10\nput 30 300\nput 20 250\nput 40 400\nget 10\nget 20\nget 30\nget 40'
+];
+
+for (let seed = 1; seed <= 14; seed += 1) {
+  const capacity = (seed % 5) + 1;
+  const operations = [];
+  for (let index = 0; index < 70 + seed; index += 1) {
+    const key = (index * 7 + seed * 3) % 13;
+    if ((index + seed) % 3 === 0) operations.push(`get ${key}`);
+    else operations.push(`put ${key} ${(index * 31 + seed) % 1000}`);
+  }
+  operations.push(...Array.from({ length: 13 }, (_, key) => `get ${key}`));
+  lruInputs.push(`${capacity}\n${operations.join('\n')}`);
+}
+
+lruInputs.push(`7\n${Array.from({ length: 1200 }, (_, index) => index % 4 === 0 ? `get ${(index * 11) % 23}` : `put ${(index * 17) % 23} ${index}`).join('\n')}`);
+
 const hiddenCases = {
   'two-sum': twoSumCases.map(([input, output]) => ({ input, output, hidden: true })),
   'valid-parentheses': parenthesesInputs.map((input) => ({ input, output: String(validParentheses(input)), hidden: true })),
-  'best-time-to-buy-and-sell-stock': stockInputs.map((prices) => ({ input: prices.join(' '), output: String(bestStockProfit(prices)), hidden: true }))
+  'best-time-to-buy-and-sell-stock': stockInputs.map((prices) => ({ input: prices.join(' '), output: String(bestStockProfit(prices)), hidden: true })),
+  'lru-cache': lruInputs.map((input) => ({ input, output: runLruProgram(input), hidden: true }))
 };
 
 function getHiddenTests(slug) {
