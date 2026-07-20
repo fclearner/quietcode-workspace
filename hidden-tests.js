@@ -43,6 +43,19 @@ function runLruProgram(input) {
   return output.join('\n');
 }
 
+function runHashSetProgram(input) {
+  const values = new Set();
+  const output = [];
+  for (const line of input.trim().split(/\n/)) {
+    const [operation, keyText] = line.split(/\s+/);
+    const key = Number(keyText);
+    if (operation === 'add') values.add(key);
+    else if (operation === 'remove') values.delete(key);
+    else output.push(values.has(key) ? 'true' : 'false');
+  }
+  return output.join('\n');
+}
+
 const twoSumCases = [
   ['1 4 6 8\n10', '1 2'],
   ['-3 4 3 90\n0', '0 2'],
@@ -123,11 +136,38 @@ for (let seed = 1; seed <= 14; seed += 1) {
 
 lruInputs.push(`7\n${Array.from({ length: 1200 }, (_, index) => index % 4 === 0 ? `get ${(index * 11) % 23}` : `put ${(index * 17) % 23} ${index}`).join('\n')}`);
 
+const hashSetInputs = [
+  'contains 1\nadd 1\ncontains 1\nremove 1\ncontains 1',
+  'add 0\nadd 1000000\ncontains 0\ncontains 1000000\nremove 0\ncontains 0',
+  'add 7\nadd 7\ncontains 7\nremove 7\nremove 7\ncontains 7',
+  'remove 42\ncontains 42\nadd 42\ncontains 42',
+  'add 1\nadd 2\nadd 3\nremove 2\ncontains 1\ncontains 2\ncontains 3',
+  'add 999999\ncontains 999999\ncontains 1000000\nadd 1000000\nremove 999999\ncontains 999999\ncontains 1000000',
+  'add 5\nremove 5\nadd 5\ncontains 5\nremove 6\ncontains 6',
+  'contains 0\ncontains 500000\ncontains 1000000',
+  'add 11\nadd 22\nadd 33\nremove 11\nadd 44\ncontains 11\ncontains 22\ncontains 33\ncontains 44',
+  'add 100\nadd 200\nremove 100\nremove 200\nadd 300\ncontains 100\ncontains 200\ncontains 300'
+];
+
+for (let seed = 1; seed <= 14; seed += 1) {
+  const operations = [];
+  for (let index = 0; index < 80 + seed; index += 1) {
+    const key = (index * 7919 + seed * 104729) % 1_000_001;
+    const selector = (index + seed) % 4;
+    operations.push(`${selector < 2 ? 'add' : selector === 2 ? 'remove' : 'contains'} ${key}`);
+  }
+  operations.push('contains 0', 'contains 1000000');
+  hashSetInputs.push(operations.join('\n'));
+}
+
+hashSetInputs.push(Array.from({ length: 1600 }, (_, index) => `${index % 5 < 2 ? 'add' : index % 5 === 2 ? 'remove' : 'contains'} ${(index * 65537) % 1_000_001}`).join('\n'));
+
 const hiddenCases = {
   'two-sum': twoSumCases.map(([input, output]) => ({ input, output, hidden: true })),
   'valid-parentheses': parenthesesInputs.map((input) => ({ input, output: String(validParentheses(input)), hidden: true })),
   'best-time-to-buy-and-sell-stock': stockInputs.map((prices) => ({ input: prices.join(' '), output: String(bestStockProfit(prices)), hidden: true })),
-  'lru-cache': lruInputs.map((input) => ({ input, output: runLruProgram(input), hidden: true }))
+  'lru-cache': lruInputs.map((input) => ({ input, output: runLruProgram(input), hidden: true })),
+  'design-hashset': hashSetInputs.map((input) => ({ input, output: runHashSetProgram(input), hidden: true }))
 };
 
 function getHiddenTests(slug) {

@@ -189,7 +189,7 @@
 
   <aside id="coachDrawer" class="coach-drawer hidden" aria-label="学习教练对话">
     <header class="coach-head">
-      <div class="coach-identity"><span class="coach-avatar">✦</span><div><strong>学习教练</strong><small><i></i> Codex 已连接</small></div></div>
+      <div class="coach-identity"><span class="coach-avatar">✦</span><div><strong>学习教练</strong><small><i></i> <span id="coachProvider">本地引导可用</span></small></div></div>
       <div><button id="clearCoachChat" title="清空当前对话">↺</button><button id="closeCoach" title="关闭">×</button></div>
     </header>
     <div id="coachContext" class="coach-context"></div>
@@ -204,7 +204,7 @@
       <textarea id="coachInput" rows="2" placeholder="说说你卡在哪里…（Enter 发送）"></textarea>
       <button id="sendCoach" title="发送">↑</button>
     </div>
-    <footer>发送即附带当前代码与测试结果到 Codex · 未通过前不直接给答案</footer>
+    <footer id="coachPrivacy">本地模式不上传代码 · 未通过前不直接给答案</footer>
   </aside>
 
   <dialog id="settingsDialog">

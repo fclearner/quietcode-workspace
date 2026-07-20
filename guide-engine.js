@@ -20,6 +20,11 @@ function calculateStreak(dates, today) {
   return streak;
 }
 
+function hasCompleteContent(problem) {
+  return Boolean(problem.summary && problem.input && problem.output && problem.examples?.length
+    && ['javascript', 'python', 'cpp'].every((language) => problem.templates?.[language]));
+}
+
 function compactProblem(problem, reason, mode, score) {
   return {
     slug: problem.slug,
@@ -29,7 +34,7 @@ function compactProblem(problem, reason, mode, score) {
     topics: problem.topics.slice(0, 5),
     acceptance: problem.acceptance,
     companies: problem.companies.slice().sort((a, b) => b.frequency - a.frequency).slice(0, 3).map((item) => item.name),
-    hasLocalTests: Boolean(problem.examples?.length),
+    hasLocalTests: hasCompleteContent(problem),
     reason,
     mode,
     score: Math.round(score)
@@ -98,8 +103,10 @@ function generateGuide(problemData, rawProfile = {}) {
   const weakNames = new Set(weakTopics.slice(0, 3).map((item) => item.topic));
   const recentSlugs = new Set(relevantSubmissions.slice(0, 5).map((item) => item.slug));
   const candidates = [];
+  const completeProblems = problems.filter(hasCompleteContent);
+  const practiceProblems = completeProblems.length ? completeProblems : problems;
 
-  for (const problem of problems) {
+  for (const problem of practiceProblems) {
     if (solvedSet.has(problem.slug)) continue;
     const pStats = perProblem.get(problem.slug) || { failures: 0, passes: 0 };
     const frequency = Math.max(0, ...problem.companies.map((item) => item.frequency || 0));
@@ -190,4 +197,4 @@ function generateGuide(problemData, rawProfile = {}) {
   };
 }
 
-module.exports = { generateGuide, calculateStreak };
+module.exports = { generateGuide, calculateStreak, hasCompleteContent };

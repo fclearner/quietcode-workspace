@@ -5,8 +5,8 @@ const difficultyName = { easy: '简单', medium: '中等', hard: '困难', unkno
 const languageName = { javascript: 'JavaScript', python: 'Python 3', cpp: 'C++17' };
 const STORAGE_KEY = 'workspace-state-v1';
 const PAGE_SIZE = 25;
-const hiddenCaseCounts = { 'two-sum': 27, 'valid-parentheses': 35, 'best-time-to-buy-and-sell-stock': 30, 'lru-cache': 25 };
-const JUDGE_VERSION = 3;
+const hiddenCaseCounts = { 'two-sum': 27, 'valid-parentheses': 35, 'best-time-to-buy-and-sell-stock': 30, 'lru-cache': 25, 'design-hashset': 25 };
+const JUDGE_VERSION = 4;
 const hiddenJudgeSlugs = Object.keys(hiddenCaseCounts);
 
 function migrateJudgeState(target, savedVersion) {
@@ -15,7 +15,8 @@ function migrateJudgeState(target, savedVersion) {
   // Any completion recorded after a hidden suite was introduced was genuinely verified.
   const previouslyVerified = [
     ...(version >= 1 ? ['two-sum', 'valid-parentheses', 'best-time-to-buy-and-sell-stock'] : []),
-    ...(version >= 2 ? ['lru-cache'] : [])
+    ...(version >= 2 ? ['lru-cache'] : []),
+    ...(version >= 4 ? ['design-hashset'] : [])
   ];
   previouslyVerified.forEach((slug) => {
     if (target.solved[slug]) target.verifiedSolved[slug] = target.solved[slug];
@@ -44,6 +45,7 @@ let dailyProblem = null;
 let guide = null;
 let toastTimer;
 let coachPending = false;
+let coachProvider = 'local';
 const lastExecutionByProblem = new Map();
 
 function loadState() {
@@ -115,6 +117,11 @@ function maxFrequency(problem) {
   return Math.max(0, ...problem.companies.map((company) => company.frequency || 0));
 }
 
+function hasLocalContent(problem) {
+  return Boolean(problem.summary && problem.input && problem.output && problem.examples?.length
+    && ['javascript', 'python', 'cpp'].every((language) => problem.templates?.[language]));
+}
+
 function applyTheme() {
   document.documentElement.dataset.theme = state.settings.theme;
   $('#themeBtn').textContent = state.settings.theme === 'dark' ? '☀' : '☾';
@@ -124,6 +131,7 @@ function applyTheme() {
 async function init() {
   applyTheme();
   bindEvents();
+  refreshCoachProvider();
   try {
     const response = await fetch('/api/problems');
     if (!response.ok) throw new Error((await response.json()).error || '题库加载失败');
@@ -137,6 +145,21 @@ async function init() {
   } catch (error) {
     $('#problemRows').innerHTML = `<div class="empty-state"><strong>无法加载题库</strong><span>${escapeHtml(error.message)}</span></div>`;
   }
+}
+
+function setCoachProvider(provider) {
+  coachProvider = provider === 'codex' ? 'codex' : 'local';
+  $('#coachProvider').textContent = coachProvider === 'codex' ? 'Codex 增强可用' : '本地引导可用';
+  $('#coachPrivacy').textContent = coachProvider === 'codex'
+    ? '提问会发送当前代码与测试结果到 Codex · 可自动降级本地模式'
+    : '本地模式不上传代码 · 未通过前不直接给答案';
+}
+
+async function refreshCoachProvider() {
+  try {
+    const response = await fetch('/api/coach/status');
+    if (response.ok) setCoachProvider((await response.json()).mode);
+  } catch { setCoachProvider('local'); }
 }
 
 function hydrateFilters() {
@@ -206,9 +229,10 @@ function problemRow(problem) {
   const statusIcon = status === 'solved' ? '✓' : status === 'attempted' ? '◔' : '○';
   const labels = problem.companies.slice().sort((a, b) => b.frequency - a.frequency).slice(0, 3);
   const prefix = problem.id ? `${problem.id}. ` : '';
+  const contentLabel = hasLocalContent(problem) ? '本地可练' : '外部题目索引';
   return `<div class="problem-table problem-row" data-slug="${problem.slug}">
     <span class="problem-status ${status}" title="${status || '未开始'}">${statusIcon}</span>
-    <span class="problem-name"><strong>${escapeHtml(prefix + problem.title)}</strong><small>${escapeHtml(problem.topics.slice(0, 4).join(' · ') || '暂无标签')}</small></span>
+    <span class="problem-name"><strong>${escapeHtml(prefix + problem.title)}</strong><small>${contentLabel} · ${escapeHtml(problem.topics.slice(0, 4).join(' · ') || '暂无标签')}</small></span>
     <span class="difficulty-badge ${problem.difficulty}">${difficultyName[problem.difficulty] || '未知'}</span>
     <span class="acceptance">${problem.acceptance === null ? '—' : `${problem.acceptance.toFixed(1)}%`}</span>
     <span class="company-tags">${labels.map((item) => `<span>${escapeHtml(item.name)}</span>`).join('')}${problem.companies.length > 3 ? `<span>+${problem.companies.length - 3}</span>` : ''}</span>
@@ -689,6 +713,7 @@ async function sendCoachMessage(prefilled = '') {
     });
     const result = await response.json();
     if (!response.ok) throw new Error(result.error || '教练暂时无法回复');
+    setCoachProvider(result.provider);
     state.coachChats[problemSlug].push({ role: 'assistant', content: result.answer, createdAt: new Date().toISOString() });
   } catch (error) {
     state.coachChats[problemSlug].push({ role: 'assistant', content: `暂时没能连接到教练：${error.message}`, createdAt: new Date().toISOString() });

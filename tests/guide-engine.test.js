@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { generateGuide, calculateStreak } = require('../guide-engine');
+const { generateGuide, calculateStreak, hasCompleteContent } = require('../guide-engine');
 
 const problems = [
   { slug: 'array-easy', title: 'Array Easy', difficulty: 'easy', acceptance: 60, topics: ['Array'], companies: [{ name: 'A', frequency: 80 }], examples: [{ input: '1', output: '1' }] },
@@ -43,4 +43,17 @@ test('never recommends a completed item as new training', () => {
   });
   assert.equal(guide.profile.solvedCount, 1);
   assert.ok(guide.recommendations.every((item) => item.slug !== 'array-easy'));
+});
+
+test('excludes metadata-only entries when complete local exercises exist', () => {
+  const complete = {
+    ...problems[0],
+    summary: '完整题面', input: '输入', output: '输出',
+    templates: { javascript: '// TODO', python: '# TODO', cpp: '// TODO' }
+  };
+  const metadataOnly = { ...problems[1], companies: [{ name: 'A', frequency: 1000 }] };
+  assert.equal(hasCompleteContent(complete), true);
+  assert.equal(hasCompleteContent(metadataOnly), false);
+  const guide = generateGuide({ problems: [metadataOnly, complete] }, { solved: {}, attempted: {}, submissions: [] });
+  assert.deepEqual(guide.recommendations.map((item) => item.slug), [complete.slug]);
 });

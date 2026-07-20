@@ -2,10 +2,11 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const data = require('../data/problems.json');
 const { runCode, normalizeOutput } = require('../server');
+const localSlugs = ['two-sum', 'valid-parentheses', 'best-time-to-buy-and-sell-stock', 'lru-cache', 'design-hashset'];
 
 test('curated problems start with TODO skeletons and keep answers separately', () => {
   const legacyAnswerMarkers = /const seen = new Map\(\)|const pairs =|let low = Infinity, profit = 0/;
-  for (const slug of ['two-sum', 'valid-parentheses', 'best-time-to-buy-and-sell-stock', 'lru-cache']) {
+  for (const slug of localSlugs) {
     const problem = data.problems.find((item) => item.slug === slug);
     assert.ok(problem, `${slug} should exist`);
     for (const language of ['javascript', 'python', 'cpp']) assert.match(problem.templates[language], /TODO/);
@@ -17,7 +18,7 @@ test('curated problems start with TODO skeletons and keep answers separately', (
 });
 
 test('starter skeletons do not pass the first example', async () => {
-  for (const slug of ['two-sum', 'valid-parentheses', 'best-time-to-buy-and-sell-stock', 'lru-cache']) {
+  for (const slug of localSlugs) {
     const problem = data.problems.find((item) => item.slug === slug);
     const result = await runCode({ language: 'javascript', code: problem.templates.javascript, input: problem.examples[0].input });
     assert.notEqual(normalizeOutput(result.stdout), normalizeOutput(problem.examples[0].output), `${slug} starter must not contain the answer`);

@@ -18,6 +18,7 @@ const TIMEOUT = 5000;
 const COACH_TIMEOUT = 120_000;
 let activeCoachRuns = 0;
 let problemDataCache;
+let codexAvailability;
 
 function getProblemData() {
   if (!problemDataCache) problemDataCache = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
@@ -262,6 +263,97 @@ ${history.length ? history.map((item) => `${item.role === 'user' ? '学习者' :
   });
 }
 
+function detectCodex() {
+  if (process.env.DISABLE_CODEX_COACH === '1') return Promise.resolve(false);
+  if (codexAvailability !== undefined) return Promise.resolve(codexAvailability);
+  return new Promise((resolve) => {
+    let timer;
+    const child = spawn('codex', ['--version'], { stdio: 'ignore' });
+    let settled = false;
+    const finish = (available) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      codexAvailability = available;
+      resolve(available);
+    };
+    timer = setTimeout(() => { child.kill('SIGKILL'); finish(false); }, 2000);
+    child.once('error', () => finish(false));
+    child.once('close', (code) => finish(code === 0));
+  });
+}
+
+function localCoach(body, codexFailed = false) {
+  const message = String(body?.message || '').trim();
+  if (!message) throw new Error('请输入你想问的问题');
+  if (message.length > 4000) throw new Error('单次问题不能超过 4000 字');
+  const context = body?.context && typeof body.context === 'object' ? body.context : {};
+  const title = String(context.title || '当前题目');
+  const topics = Array.isArray(context.topics) ? context.topics.map(String) : [];
+  const code = String(context.code || '');
+  const result = String(context.lastResult || '');
+  const history = Array.isArray(body?.history) ? body.history : [];
+  const level = history.filter((item) => item?.role === 'user').length;
+  const asksFailure = /失败|报错|用例|结果|为什么|wrong|error/i.test(message);
+  const asksMore = /下一级|更多|再提示|伪代码|还没|不懂/i.test(message) || level >= 2;
+  const unfinished = /TODO|pass\s*(?:#.*)?$/m.test(code);
+
+  let hint;
+  if (/LRU Cache/i.test(title)) {
+    hint = asksMore
+      ? '把链表两端设成哨兵：靠近头部的是最久未使用，靠近尾部的是最近使用。`get` 命中后把节点移到尾部；`put` 更新时也移动，新插入超容量时删除头部后的第一个真实节点，并同步删除哈希表记录。'
+      : '先确定两个职责：哈希表负责 O(1) 找到节点，双向链表负责 O(1) 删除节点并更新最近使用顺序。想一想，为什么单链表很难在 O(1) 内把任意节点移走？';
+  } else if (/Two Sum/i.test(title)) {
+    hint = asksMore
+      ? '遍历到 `x` 时先查询 `target - x` 是否已经出现；命中就返回旧下标和当前下标，未命中再记录 `x`。注意查询必须发生在写入之前，才能正确处理两个相同数字。'
+      : '暴力做法重复查找“另一个数”。能否一边遍历，一边用一个结构记录已经见过的数及其下标，让补数查询接近 O(1)？';
+  } else if (/Valid Parentheses/i.test(title)) {
+    hint = asksMore
+      ? '遇到左括号入栈；遇到右括号时，栈必须非空且栈顶类型匹配，然后弹栈。遍历结束后还要确认栈为空。'
+      : '括号是否合法只取决于“最近一个还没闭合的左括号”。哪种数据结构最适合维护这种后进先出的状态？';
+  } else if (/Best Time to Buy and Sell Stock/i.test(title)) {
+    hint = asksMore
+      ? '从左到右维护两个量：截至今天见过的最低价格，以及如果今天卖出能得到的最好利润。先更新最低价，再用当前价减最低价更新答案。'
+      : '卖出发生在买入之后。遍历到某一天时，你真正需要记住全部历史价格，还是只需要此前的最低价格？';
+  } else {
+    const topicHints = [
+      ['Hash Table', '尝试明确“需要快速查询的键”和“查询后要保存的值”，再检查写入与查询的先后顺序。'],
+      ['Doubly-Linked List', '把需要 O(1) 移动或删除的对象保存为节点，并维护前驱、后继以及两端哨兵。'],
+      ['Stack', '找出需要最后进入、最先处理的状态，并明确什么时候入栈、什么时候弹栈。'],
+      ['Two Pointers', '先写出两个指针各自代表的边界，再确定每一步由哪个条件推动哪一个指针。'],
+      ['Sliding Window', '定义窗口内必须持续成立的条件；右端扩张，条件破坏时移动左端恢复。'],
+      ['Binary Search', '先定义单调判定条件和搜索区间含义，再统一处理中点与边界收缩。'],
+      ['Dynamic Programming', '先用一句话定义状态，再列出状态从哪些更小状态转移，并单独检查初始状态。'],
+      ['Tree', '先判断每个节点需要从子树获得什么信息，以及它应向父节点返回什么。'],
+      ['Graph', '明确节点、边和访问状态；再判断需要最短层数的 BFS，还是递归探索的 DFS。'],
+      ['Heap (Priority Queue)', '如果每次只关心当前最小或最大元素，考虑用堆维护候选集合。']
+    ];
+    hint = topicHints.find(([topic]) => topics.includes(topic))?.[1]
+      || '先写出最直接的暴力解法，并标出重复计算或重复查找发生在哪里；下一步只优化这一处。';
+  }
+
+  let diagnosis = `卡点更像是${unfinished ? '解法结构还没有落到代码' : '边界条件或状态更新顺序'}。`;
+  if (asksFailure && result) {
+    if (/超时/.test(result)) diagnosis = '当前首先要处理的是复杂度：不要急着改语法，先找出重复遍历或重复查找。';
+    else if (/错误输出|SyntaxError|Traceback|compile|error/i.test(result)) diagnosis = '当前首先要处理的是运行或编译错误：从错误信息指向的第一行开始，不要被后续连锁报错干扰。';
+    else if (/隐藏用例未通过/.test(result)) diagnosis = '公开样例已经不足以定位问题，优先检查空结构、重复键、容量为 1、单元素和更新顺序等边界。';
+    else diagnosis = '先比较预期输出与实际输出第一次不同的位置，再倒推该位置对应的状态更新。';
+  }
+  const fallback = codexFailed ? '\n\nCodex 增强当前不可用，本轮已自动使用本地引导；核心练习功能不受影响。' : '';
+  return { answer: `${diagnosis}\n\n${hint}${asksMore ? '\n\n先只实现并验证这一层，不要同时重写其他部分。' : ''}${fallback}`, timeMs: 0, provider: 'local' };
+}
+
+async function coachReply(body) {
+  if (await detectCodex()) {
+    try {
+      return { ...(await askCoach(body)), provider: 'codex' };
+    } catch {
+      return localCoach(body, true);
+    }
+  }
+  return localCoach(body);
+}
+
 function execute(command, args, input, cwd, timeout) {
   return new Promise((resolve) => {
     const started = process.hrtime.bigint();
@@ -371,11 +463,15 @@ async function api(req, res, pathname) {
       return json(res, 400, { error: error.message });
     }
   }
+  if (req.method === 'GET' && pathname === '/api/coach/status') {
+    const available = await detectCodex();
+    return json(res, 200, { mode: available ? 'codex' : 'local', localFallback: true });
+  }
   if (req.method === 'POST' && pathname === '/api/coach') {
     if (activeCoachRuns >= 2) return json(res, 429, { error: '教练正在处理其他问题，请稍后再试' });
     activeCoachRuns += 1;
     try {
-      return json(res, 200, await askCoach(await readBody(req)));
+      return json(res, 200, await coachReply(await readBody(req)));
     } catch (error) {
       return json(res, 400, { error: error.message });
     } finally {
@@ -411,4 +507,4 @@ if (require.main === module) {
   server.listen(PORT, HOST, () => console.log(`Workspace: http://${HOST}:${PORT}`));
 }
 
-module.exports = { server, runCode, judgeCode, normalizeOutput };
+module.exports = { server, runCode, judgeCode, normalizeOutput, localCoach };
