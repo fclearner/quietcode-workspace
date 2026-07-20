@@ -6,22 +6,31 @@ const languageName = { javascript: 'JavaScript', python: 'Python 3', cpp: 'C++17
 const STORAGE_KEY = 'workspace-state-v1';
 const PAGE_SIZE = 25;
 const hiddenCaseCounts = { 'two-sum': 27, 'valid-parentheses': 35, 'best-time-to-buy-and-sell-stock': 30, 'lru-cache': 25 };
-const JUDGE_VERSION = 2;
-const judgeMigrations = {
-  1: ['two-sum', 'valid-parentheses', 'best-time-to-buy-and-sell-stock'],
-  2: ['lru-cache']
-};
+const JUDGE_VERSION = 3;
+const hiddenJudgeSlugs = Object.keys(hiddenCaseCounts);
 
 function migrateJudgeState(target, savedVersion) {
   const version = Number(savedVersion) || 0;
-  for (let next = version + 1; next <= JUDGE_VERSION; next += 1) {
-    (judgeMigrations[next] || []).forEach((slug) => { delete target.solved[slug]; });
+  target.verifiedSolved ||= {};
+  // Any completion recorded after a hidden suite was introduced was genuinely verified.
+  const previouslyVerified = [
+    ...(version >= 1 ? ['two-sum', 'valid-parentheses', 'best-time-to-buy-and-sell-stock'] : []),
+    ...(version >= 2 ? ['lru-cache'] : [])
+  ];
+  previouslyVerified.forEach((slug) => {
+    if (target.solved[slug]) target.verifiedSolved[slug] = target.solved[slug];
+  });
+  // Earlier migrations removed learning progress. Rebuild it from retained pass history,
+  // but keep reference solutions locked until the new hidden suite is passed.
+  for (const submission of [...(target.submissions || [])].reverse()) {
+    if (!submission.passed || submission.kind !== 'submit' || !hiddenJudgeSlugs.includes(submission.slug)) continue;
+    if (!target.solved[submission.slug]) target.solved[submission.slug] = String(submission.createdAt || '').slice(0, 10) || dateKey();
   }
   target.judgeVersion = JUDGE_VERSION;
 }
 
 const defaultState = {
-  solved: {}, attempted: {}, favorites: [], submissions: [], drafts: {}, notes: {}, customCases: {}, coachChats: {},
+  solved: {}, verifiedSolved: {}, attempted: {}, favorites: [], submissions: [], drafts: {}, notes: {}, customCases: {}, coachChats: {},
   settings: { theme: 'light', defaultLanguage: 'javascript', dailyGoal: 1, fontSize: 13 }, templateVersion: 2, judgeVersion: JUDGE_VERSION
 };
 
@@ -396,9 +405,16 @@ function defaultTemplate(language) {
   return "const fs = require('fs');\nconst input = fs.readFileSync(0, 'utf8').trim();\n\nfunction solve(input) {\n  // TODO: 在这里写你的解法\n  return '';\n}\n\nconsole.log(solve(input));\n";
 }
 
+function isSolutionVerified(problem) {
+  if (!problem) return false;
+  return hiddenCaseCounts[problem.slug]
+    ? Boolean(state.verifiedSolved?.[problem.slug])
+    : Boolean(state.solved[problem.slug]);
+}
+
 function renderReference() {
   if (!currentProblem) return;
-  const unlocked = Boolean(state.solved[currentProblem.slug] && Object.keys(currentProblem.solutions || {}).length);
+  const unlocked = Boolean(isSolutionVerified(currentProblem) && Object.keys(currentProblem.solutions || {}).length);
   $('#referenceTab').classList.toggle('hidden', !unlocked);
   if (!unlocked) {
     $('#referenceContent').innerHTML = '';
@@ -498,8 +514,11 @@ async function executeCode(kind) {
     $('#runtimeInfo').textContent = `${execution.timeMs || 0} ms`;
     $('#resultDot').className = passed ? 'success' : 'error';
     state.attempted[currentProblem.slug] = dateKey();
-    if (kind === 'submit' && passed) state.solved[currentProblem.slug] = dateKey();
-    state.submissions.unshift({ id: crypto.randomUUID(), slug: currentProblem.slug, title: currentProblem.title, language, kind, passed, timeMs: execution.timeMs || 0, createdAt: new Date().toISOString(), code });
+    if (kind === 'submit' && passed) {
+      state.solved[currentProblem.slug] = dateKey();
+      if (result.verified) state.verifiedSolved[currentProblem.slug] = dateKey();
+    }
+    state.submissions.unshift({ id: crypto.randomUUID(), slug: currentProblem.slug, title: currentProblem.title, language, kind, passed, verified: Boolean(result.verified), timeMs: execution.timeMs || 0, createdAt: new Date().toISOString(), code });
     state.submissions = state.submissions.slice(0, 300);
     saveState();
     await refreshGuide();
@@ -511,7 +530,7 @@ async function executeCode(kind) {
       : '运行成功只说明程序能够执行；完成正式提交后，我会结合测试结果调整掌握度和下一项内容。';
     $('#coachFeedback').innerHTML = `<strong>基于本次结果的建议</strong>${escapeHtml(feedback)}`;
     $('#coachFeedback').classList.remove('hidden');
-    if (kind === 'submit' && passed && currentProblem.solutions?.[language]) {
+    if (kind === 'submit' && passed && isSolutionVerified(currentProblem) && currentProblem.solutions?.[language]) {
       $('#solutionReveal').innerHTML = `<header><strong>参考实现 · ${languageName[language]}</strong><span>通过后解锁</span></header><pre>${escapeHtml(currentProblem.solutions[language])}</pre>`;
       $('#solutionReveal').classList.remove('hidden');
       renderReference();
@@ -600,7 +619,9 @@ function currentCoachHistory() {
 function renderCoachChat() {
   if (!currentProblem) return;
   const language = $('#languageSelect').value;
-  const status = state.solved[currentProblem.slug] ? '已完成，可讨论完整实现' : '练习中，只提供分层提示';
+  const status = isSolutionVerified(currentProblem)
+    ? '已验证，可讨论完整实现'
+    : state.solved[currentProblem.slug] ? '已计入进度，需通过隐藏用例后解锁答案' : '练习中，只提供分层提示';
   $('#coachContext').innerHTML = `<strong>${escapeHtml(currentProblem.title)}</strong> · ${languageName[language]} · ${status}`;
   const history = currentCoachHistory();
   const greeting = history.length ? '' : `<div class="coach-message"><span class="mini-avatar">✦</span><div class="bubble">我已经看到了当前题目、代码和测试用例。你可以直接说卡在哪里；我会先给最小提示，不会一上来把答案贴出来。</div></div>`;
@@ -660,7 +681,7 @@ async function sendCoachMessage(prefilled = '') {
           testInput: test.input || '',
           expectedOutput: test.output || '',
           lastResult: lastExecution?.text || '',
-          solved: Boolean(state.solved[problemSlug]),
+          solved: isSolutionVerified(problem),
           learningAdvice: adviceForProblem(problem),
           weakTopics: guide?.weakTopics?.map((item) => item.topic) || []
         }

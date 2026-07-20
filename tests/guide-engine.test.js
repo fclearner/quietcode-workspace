@@ -33,3 +33,14 @@ test('prioritizes an attempted weakness and explains why', () => {
   assert.equal(guide.weakTopics[0].topic, 'Array');
   assert.match(guide.message, /遇到了阻力/);
 });
+
+test('never recommends a completed item as new training', () => {
+  const guide = generateGuide({ problems }, {
+    today: '2026-07-16',
+    solved: { 'array-easy': '2026-07-15' },
+    attempted: { 'array-easy': '2026-07-15' },
+    submissions: [{ slug: 'array-easy', kind: 'submit', passed: true, createdAt: '2026-07-15T08:00:00.000Z' }]
+  });
+  assert.equal(guide.profile.solvedCount, 1);
+  assert.ok(guide.recommendations.every((item) => item.slug !== 'array-easy'));
+});
