@@ -56,6 +56,38 @@ function runHashSetProgram(input) {
   return output.join('\n');
 }
 
+function longestUniqueSubstring(value) {
+  const last = new Map();
+  let left = 0;
+  let best = 0;
+  for (let right = 0; right < value.length; right += 1) {
+    if (last.has(value[right])) left = Math.max(left, last.get(value[right]) + 1);
+    last.set(value[right], right);
+    best = Math.max(best, right - left + 1);
+  }
+  return best;
+}
+
+function maximumSubarray(values) {
+  let current = values[0];
+  let best = values[0];
+  for (let index = 1; index < values.length; index += 1) {
+    current = Math.max(values[index], current + values[index]);
+    best = Math.max(best, current);
+  }
+  return best;
+}
+
+function mergeIntervals(values) {
+  const result = [];
+  for (const interval of values.map((item) => item.slice()).sort((a, b) => a[0] - b[0] || a[1] - b[1])) {
+    const last = result.at(-1);
+    if (!last || interval[0] > last[1]) result.push(interval);
+    else last[1] = Math.max(last[1], interval[1]);
+  }
+  return result;
+}
+
 const twoSumCases = [
   ['1 4 6 8\n10', '1 2'],
   ['-3 4 3 90\n0', '0 2'],
@@ -162,12 +194,45 @@ for (let seed = 1; seed <= 14; seed += 1) {
 
 hashSetInputs.push(Array.from({ length: 1600 }, (_, index) => `${index % 5 < 2 ? 'add' : index % 5 === 2 ? 'remove' : 'contains'} ${(index * 65537) % 1_000_001}`).join('\n'));
 
+const longestSubstringInputs = [
+  '', 'a', 'aa', 'ab', 'abba', 'dvdf', 'anviaj', 'tmmzuxt', 'abcadef', 'abcdef',
+  'a b c a', '123451678', '!@#$!%^&', 'AaBbCcAa', 'repeat-and-repeat', 'abcabcbbxyz',
+  'zzabcdefghijklmnopqrstuvwxy', 'ohvhjdml', 'ckilbkd', 'nfpdmpi',
+  ...Array.from({ length: 10 }, (_, seed) => Array.from({ length: 120 + seed * 7 }, (_, index) =>
+    String.fromCharCode(33 + ((index * 17 + seed * 11 + Math.floor(index / 9)) % 80))).join(''))
+];
+
+const maximumSubarrayInputs = [
+  [-1], [0], [1], [-5, -2, -9], [1, 2, 3], [5, -10, 6], [2, -1, 2, 3, 4, -5],
+  [-2, -1], [-2, 1], [8, -19, 5, -4, 20], [100000, -1, -2, 100000],
+  [-100000, 99999], [3, -2, 5, -1], [-1, 3, -2, 3, -10, 8], [4, -1, -2, 1],
+  ...Array.from({ length: 15 }, (_, seed) => Array.from({ length: 80 + seed * 13 }, (_, index) =>
+    ((index * 97 + seed * 41) % 101) - 50))
+];
+
+const mergeIntervalInputs = [
+  [[1, 2]], [[1, 4], [2, 3]], [[1, 4], [0, 4]], [[1, 4], [5, 6]],
+  [[1, 4], [4, 4]], [[-10, -1], [-5, 3]], [[1, 10], [2, 3], [4, 8]],
+  [[5, 7], [1, 2], [3, 4]], [[0, 0], [0, 1]], [[1, 2], [2, 3], [3, 4]],
+  ...Array.from({ length: 20 }, (_, seed) => Array.from({ length: 20 + seed }, (_, index) => {
+    const start = ((index * 37 + seed * 13) % 90) - 30;
+    return [start, start + ((index * 11 + seed) % 12)];
+  }))
+];
+
 const hiddenCases = {
   'two-sum': twoSumCases.map(([input, output]) => ({ input, output, hidden: true })),
   'valid-parentheses': parenthesesInputs.map((input) => ({ input, output: String(validParentheses(input)), hidden: true })),
   'best-time-to-buy-and-sell-stock': stockInputs.map((prices) => ({ input: prices.join(' '), output: String(bestStockProfit(prices)), hidden: true })),
   'lru-cache': lruInputs.map((input) => ({ input, output: runLruProgram(input), hidden: true })),
-  'design-hashset': hashSetInputs.map((input) => ({ input, output: runHashSetProgram(input), hidden: true }))
+  'design-hashset': hashSetInputs.map((input) => ({ input, output: runHashSetProgram(input), hidden: true })),
+  'longest-substring-without-repeating-characters': longestSubstringInputs.map((input) => ({ input, output: String(longestUniqueSubstring(input)), hidden: true })),
+  'maximum-subarray': maximumSubarrayInputs.map((values) => ({ input: values.join(' '), output: String(maximumSubarray(values)), hidden: true })),
+  'merge-intervals': mergeIntervalInputs.map((values) => ({
+    input: values.map((item) => item.join(' ')).join('\n'),
+    output: mergeIntervals(values).map((item) => item.join(' ')).join('\n'),
+    hidden: true
+  }))
 };
 
 function getHiddenTests(slug) {

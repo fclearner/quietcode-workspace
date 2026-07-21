@@ -2,7 +2,16 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const data = require('../data/problems.json');
 const { runCode, normalizeOutput } = require('../server');
-const localSlugs = ['two-sum', 'valid-parentheses', 'best-time-to-buy-and-sell-stock', 'lru-cache', 'design-hashset'];
+const localSlugs = [
+  'two-sum',
+  'valid-parentheses',
+  'best-time-to-buy-and-sell-stock',
+  'lru-cache',
+  'design-hashset',
+  'longest-substring-without-repeating-characters',
+  'maximum-subarray',
+  'merge-intervals'
+];
 
 test('curated problems start with TODO skeletons and keep answers separately', () => {
   const legacyAnswerMarkers = /const seen = new Map\(\)|const pairs =|let low = Infinity, profit = 0/;

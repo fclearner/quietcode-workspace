@@ -5,8 +5,17 @@ const difficultyName = { easy: '简单', medium: '中等', hard: '困难', unkno
 const languageName = { javascript: 'JavaScript', python: 'Python 3', cpp: 'C++17' };
 const STORAGE_KEY = 'workspace-state-v1';
 const PAGE_SIZE = 25;
-const hiddenCaseCounts = { 'two-sum': 27, 'valid-parentheses': 35, 'best-time-to-buy-and-sell-stock': 30, 'lru-cache': 25, 'design-hashset': 25 };
-const JUDGE_VERSION = 4;
+const hiddenCaseCounts = {
+  'two-sum': 27,
+  'valid-parentheses': 35,
+  'best-time-to-buy-and-sell-stock': 30,
+  'lru-cache': 25,
+  'design-hashset': 25,
+  'longest-substring-without-repeating-characters': 30,
+  'maximum-subarray': 30,
+  'merge-intervals': 30
+};
+const JUDGE_VERSION = 5;
 const hiddenJudgeSlugs = Object.keys(hiddenCaseCounts);
 
 function migrateJudgeState(target, savedVersion) {
