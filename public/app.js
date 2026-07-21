@@ -319,6 +319,7 @@ async function refreshGuide(showNotice = false) {
 function renderGuide() {
   if (!guide) return;
   const profile = guide.profile;
+  const recommendations = currentRecommendations();
   const difficultyText = { easy: '基础巩固', medium: '稳定进阶', hard: '综合挑战' };
   const modeText = { retry: '优先回看', weakness: '弱项训练', warmup: '热身', core: '核心', stretch: '挑战', review: '复盘' };
   $('#guideMessage').textContent = guide.message;
@@ -330,22 +331,28 @@ function renderGuide() {
   $('#guideAttempted').textContent = profile.attemptedCount;
   $('#guideStreak').textContent = `${profile.streak} 天`;
   $('#guideUpdatedAt').textContent = `更新于 ${new Date(guide.generatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
-  $('#startRecommendation').disabled = !guide.recommendations.length;
-  $('#recommendationList').innerHTML = guide.recommendations.length ? guide.recommendations.map((item, index) => `
+  $('#startRecommendation').disabled = !recommendations.length;
+  $('#recommendationList').innerHTML = recommendations.length ? recommendations.map((item, index) => `
     <article class="recommendation-item" data-guide-slug="${item.slug}">
       <span class="queue-number">${index + 1}</span>
       <div class="recommendation-main"><header><strong>${escapeHtml(`${item.id ? `${item.id}. ` : ''}${item.title}`)}</strong><span class="mode-pill ${item.mode}">${modeText[item.mode] || '训练'}</span></header><p>${escapeHtml(item.reason)}</p><div class="recommendation-tags"><span>${difficultyName[item.difficulty]}</span>${item.topics.slice(0, 3).map((topic) => `<span>${escapeHtml(topic)}</span>`).join('')}${item.hasLocalTests ? '<span>本地测试</span>' : ''}</div></div>
       <span>→</span>
-    </article>`).join('') : '<div class="empty-state"><strong>当前目录已全部完成</strong><span>可以从间隔复盘开始</span></div>';
+    </article>`).join('') : '<div class="empty-state"><strong>今天没有待练的新题</strong><span>已完成和今天练过的题不会重复出现，可以从间隔复盘开始</span></div>';
   $('#weakTopicList').innerHTML = guide.weakTopics.length ? guide.weakTopics.map((item) => `
     <div class="weak-topic"><header><strong>${escapeHtml(item.topic)}</strong><span>掌握度 ${item.mastery}%</span></header><div class="mastery-track"><i style="width:${item.mastery}%"></i></div><small>${item.struggling} 项待完成 · ${item.failures} 次未通过</small></div>`).join('') : '<div class="empty-state"><strong>还没有明确薄弱项</strong><span>完成几次提交后，我会开始识别</span></div>';
   $('#reviewSection').classList.toggle('hidden', !guide.reviews.length);
   $('#reviewList').innerHTML = guide.reviews.map((item) => `<article class="review-item" data-guide-slug="${item.slug}"><strong>${escapeHtml(item.title)}</strong><span>${escapeHtml(item.reason)}</span></article>`).join('');
 }
 
+function currentRecommendations() {
+  if (!guide?.recommendations) return [];
+  const today = dateKey();
+  return guide.recommendations.filter((item) => !state.solved[item.slug] && state.attempted[item.slug] !== today);
+}
+
 function adviceForProblem(problem) {
   if (!guide) return '';
-  const recommendation = guide.recommendations.find((item) => item.slug === problem.slug);
+  const recommendation = currentRecommendations().find((item) => item.slug === problem.slug);
   if (recommendation) return recommendation.reason;
   const weak = guide.weakTopics.filter((item) => problem.topics.includes(item.topic)).slice(0, 2);
   if (weak.length) return `这项内容涉及当前待加强的 ${weak.map((item) => item.topic).join('、')}，建议重点记录失败边界和复杂度。`;
@@ -546,7 +553,7 @@ async function executeCode(kind) {
     state.submissions = state.submissions.slice(0, 300);
     saveState();
     await refreshGuide();
-    const next = guide?.recommendations?.[0];
+    const next = currentRecommendations()[0];
     const feedback = kind === 'submit'
       ? passed
         ? `这次通过已计入学习画像。${next ? `下一项建议是「${next.title}」，原因：${next.reason}` : '今天可以转入复盘。'}`
@@ -768,7 +775,7 @@ function bindEvents() {
   $('#caseInput').addEventListener('change', persistCaseFields); $('#caseExpected').addEventListener('change', persistCaseFields);
   $('#addCase').addEventListener('click', () => { state.customCases[currentProblem.slug] ||= []; state.customCases[currentProblem.slug].push({ input: '', output: '' }); currentCase = (currentProblem.examples?.length || 0) + state.customCases[currentProblem.slug].length - 1; saveState(); renderCases(); });
   $('#exportData').addEventListener('click', exportState);
-  $('#startRecommendation').addEventListener('click', () => guide?.recommendations?.[0] && openProblem(guide.recommendations[0].slug));
+  $('#startRecommendation').addEventListener('click', () => currentRecommendations()[0] && openProblem(currentRecommendations()[0].slug));
   $('#refreshGuide').addEventListener('click', () => refreshGuide(true));
   $('#recommendationList').addEventListener('click', (event) => { const item = event.target.closest('[data-guide-slug]'); if (item) openProblem(item.dataset.guideSlug); });
   $('#reviewList').addEventListener('click', (event) => { const item = event.target.closest('[data-guide-slug]'); if (item) openProblem(item.dataset.guideSlug); });

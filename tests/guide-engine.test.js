@@ -31,8 +31,8 @@ test('prioritizes an attempted weakness and explains why', () => {
   const guide = generateGuide({ problems }, {
     today: '2026-07-16',
     solved: {},
-    attempted: { 'array-medium': '2026-07-16' },
-    submissions: [{ slug: 'array-medium', kind: 'submit', passed: false, createdAt: '2026-07-16T08:00:00.000Z' }]
+    attempted: { 'array-medium': '2026-07-15' },
+    submissions: [{ slug: 'array-medium', kind: 'submit', passed: false, createdAt: '2026-07-15T08:00:00.000Z' }]
   });
   assert.equal(guide.recommendations[0].slug, 'array-medium');
   assert.equal(guide.recommendations[0].mode, 'retry');
@@ -48,6 +48,27 @@ test('never recommends a completed item as new training', () => {
     submissions: [{ slug: 'array-easy', kind: 'submit', passed: true, createdAt: '2026-07-15T08:00:00.000Z' }]
   });
   assert.equal(guide.profile.solvedCount, 1);
+  assert.ok(guide.recommendations.every((item) => item.slug !== 'array-easy'));
+});
+
+test('reconciles completed items from passed submission history', () => {
+  const guide = generateGuide({ problems }, {
+    today: '2026-07-16',
+    solved: {}, attempted: {},
+    submissions: [{ slug: 'array-easy', kind: 'submit', passed: true, createdAt: '2026-07-16T08:00:00.000Z' }]
+  });
+  assert.equal(guide.profile.solvedCount, 1);
+  assert.equal(guide.profile.todaySolved, 1);
+  assert.ok(guide.recommendations.every((item) => item.slug !== 'array-easy'));
+});
+
+test('does not repeat an item already practiced today', () => {
+  const guide = generateGuide({ problems }, {
+    today: '2026-07-16',
+    solved: {},
+    attempted: { 'array-easy': '2026-07-16' },
+    submissions: [{ slug: 'array-easy', kind: 'run', passed: true, createdAt: '2026-07-16T08:00:00.000Z' }]
+  });
   assert.ok(guide.recommendations.every((item) => item.slug !== 'array-easy'));
 });
 

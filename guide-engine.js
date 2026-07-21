@@ -62,11 +62,17 @@ function compactProblem(problem, reason, mode, score) {
 function generateGuide(problemData, rawProfile = {}) {
   const problems = Array.isArray(problemData?.problems) ? problemData.problems : [];
   const today = /^\d{4}-\d{2}-\d{2}$/.test(rawProfile.today || '') ? rawProfile.today : new Date().toISOString().slice(0, 10);
-  const solved = rawProfile.solved && typeof rawProfile.solved === 'object' ? rawProfile.solved : {};
-  const attempted = rawProfile.attempted && typeof rawProfile.attempted === 'object' ? rawProfile.attempted : {};
+  const solved = rawProfile.solved && typeof rawProfile.solved === 'object' ? { ...rawProfile.solved } : {};
+  const attempted = rawProfile.attempted && typeof rawProfile.attempted === 'object' ? { ...rawProfile.attempted } : {};
   const submissions = Array.isArray(rawProfile.submissions) ? rawProfile.submissions.slice(0, 300) : [];
   const dailyGoal = clamp(Number(rawProfile.dailyGoal) || 1, 1, 20);
   const problemBySlug = new Map(problems.map((problem) => [problem.slug, problem]));
+  for (const submission of submissions) {
+    if (!problemBySlug.has(submission.slug)) continue;
+    const practicedOn = String(submission.createdAt || '').slice(0, 10) || today;
+    if (!attempted[submission.slug]) attempted[submission.slug] = practicedOn;
+    if (submission.kind === 'submit' && submission.passed && !solved[submission.slug]) solved[submission.slug] = practicedOn;
+  }
   const solvedSet = new Set(Object.keys(solved).filter((slug) => problemBySlug.has(slug)));
   const attemptedSet = new Set(Object.keys(attempted).filter((slug) => problemBySlug.has(slug)));
   const relevantSubmissions = submissions.filter((item) => problemBySlug.has(item.slug));
@@ -126,6 +132,7 @@ function generateGuide(problemData, rawProfile = {}) {
 
   for (const problem of practiceProblems) {
     if (solvedSet.has(problem.slug)) continue;
+    if (attempted[problem.slug] === today) continue;
     const pStats = perProblem.get(problem.slug) || { failures: 0, passes: 0 };
     const frequency = Math.max(0, ...problem.companies.map((item) => item.frequency || 0));
     let score = frequency * .28 + Math.log2(problem.companies.length + 1) * 3;
