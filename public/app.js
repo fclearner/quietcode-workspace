@@ -30,6 +30,25 @@ function migrateJudgeState(target, savedVersion) {
   target.judgeVersion = JUDGE_VERSION;
 }
 
+function reconcileProgress(target) {
+  target.solved ||= {};
+  target.attempted ||= {};
+  let changed = false;
+  for (const submission of [...(target.submissions || [])].reverse()) {
+    if (!submission.slug) continue;
+    const practicedOn = String(submission.createdAt || '').slice(0, 10) || dateKey();
+    if (!target.attempted[submission.slug]) {
+      target.attempted[submission.slug] = practicedOn;
+      changed = true;
+    }
+    if (submission.kind === 'submit' && submission.passed && !target.solved[submission.slug]) {
+      target.solved[submission.slug] = practicedOn;
+      changed = true;
+    }
+  }
+  return changed;
+}
+
 const defaultState = {
   solved: {}, verifiedSolved: {}, attempted: {}, favorites: [], submissions: [], drafts: {}, notes: {}, customCases: {}, coachChats: {},
   settings: { theme: 'light', defaultLanguage: 'javascript', dailyGoal: 1, fontSize: 13 }, templateVersion: 2, judgeVersion: JUDGE_VERSION
@@ -86,6 +105,7 @@ function loadState() {
       migrateJudgeState(merged, saved.judgeVersion);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
     }
+    if (reconcileProgress(merged)) localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
     return merged;
   } catch { return structuredClone(defaultState); }
 }
@@ -178,12 +198,24 @@ function hydrateFilters() {
 
 function chooseDaily() {
   const seed = Number(dateKey().replaceAll('-', ''));
-  const pool = data.problems.filter((problem) => problem.examples.length);
-  dailyProblem = pool[seed % pool.length] || data.problems[seed % data.problems.length];
-  if (!dailyProblem) return;
+  const pool = data.problems.filter((problem) => hasLocalContent(problem)
+    && !state.solved[problem.slug] && state.attempted[problem.slug] !== dateKey());
+  const guided = currentRecommendations()[0];
+  dailyProblem = pool.find((problem) => problem.slug === guided?.slug) || pool[seed % pool.length] || null;
+  const status = $('#dailyCard .live-dot');
+  if (!dailyProblem) {
+    $('#dailyTitle').textContent = '今日练习已处理';
+    $('#dailyDifficulty').textContent = '';
+    $('#dailyTopic').textContent = '可以进入学习计划复盘';
+    $('#dailyStart').disabled = true;
+    status.textContent = '已完成';
+    return;
+  }
   $('#dailyTitle').textContent = dailyProblem.title;
   $('#dailyDifficulty').innerHTML = `<span class="difficulty-badge ${dailyProblem.difficulty}">${difficultyName[dailyProblem.difficulty]}</span>`;
   $('#dailyTopic').textContent = dailyProblem.topics[0] || 'Algorithm';
+  $('#dailyStart').disabled = false;
+  status.textContent = '待处理';
 }
 
 function filteredProblems() {
@@ -306,6 +338,7 @@ async function refreshGuide(showNotice = false) {
     if (!response.ok) throw new Error(result.error || '学习计划生成失败');
     guide = result;
     renderGuide();
+    chooseDaily();
     if (currentProblem) renderDescription();
     if (showNotice) showToast('学习计划已根据本次记录更新');
   } catch (error) {

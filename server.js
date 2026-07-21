@@ -498,7 +498,10 @@ const server = http.createServer(async (req, res) => {
     if (error || !stat.isFile()) {
       res.writeHead(404); return res.end('Not found');
     }
-    res.writeHead(200, { 'Content-Type': mime[path.extname(file)] || 'application/octet-stream' });
+    res.writeHead(200, {
+      'Content-Type': mime[path.extname(file)] || 'application/octet-stream',
+      'Cache-Control': 'no-cache'
+    });
     fs.createReadStream(file).pipe(res);
   });
 });
