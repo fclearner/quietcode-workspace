@@ -1,6 +1,27 @@
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 const escapeHtml = (value = '') => String(value).replace(/[&<>"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[char]));
+const syntaxKeywords = {
+  javascript: new Set('break case catch class const continue debugger default delete do else export extends finally for function if import in instanceof let new return static super switch this throw try typeof var void while with yield async await of'.split(' ')),
+  python: new Set('and as assert async await break class continue def del elif else except False finally for from global if import in is lambda None nonlocal not or pass raise return True try while with yield'.split(' ')),
+  cpp: new Set('alignas alignof auto bool break case catch char class const constexpr continue default delete do double else enum explicit export extern false float for friend if inline int long namespace new noexcept nullptr operator private protected public register reinterpret_cast return short signed sizeof static struct switch template this throw true try typedef typename union unsigned using virtual void volatile while'.split(' '))
+};
+const syntaxBuiltins = new Set('Array Map Set Math Number Object String console require fs process JSON Promise vector string unordered_map map set stack list pair cout cin endl range len enumerate print int str max min'.split(' '));
+
+function highlightCode(value, language) {
+  const tokens = String(value).match(/\/\*[\s\S]*?\*\/|\/\/[^\n]*|#[^\n]*|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`|\b\d+(?:\.\d+)?\b|[A-Za-z_$][\w$]*|\s+|./g) || [];
+  const keywords = syntaxKeywords[language] || new Set();
+  return tokens.map((token, index) => {
+    let kind = '';
+    if (/^(\/\/|\/\*|#)/.test(token)) kind = 'comment';
+    else if (/^["'`]/.test(token)) kind = 'string';
+    else if (/^\d/.test(token)) kind = 'number';
+    else if (keywords.has(token)) kind = 'keyword';
+    else if (syntaxBuiltins.has(token)) kind = 'builtin';
+    else if (/^[A-Za-z_$]/.test(token) && tokens.slice(index + 1).find((item) => !/^\s+$/.test(item)) === '(') kind = 'function';
+    return kind ? `<span class="tok-${kind}">${escapeHtml(token)}</span>` : escapeHtml(token);
+  }).join('');
+}
 const difficultyName = { easy: '简单', medium: '中等', hard: '困难', unknown: '未知' };
 const languageName = { javascript: 'JavaScript', python: 'Python 3', cpp: 'C++17' };
 const STORAGE_KEY = 'workspace-state-v1';
@@ -501,7 +522,7 @@ function renderReference() {
   const language = $('#languageSelect').value;
   const solution = currentProblem.solutions[language];
   $('#referenceContent').innerHTML = solution
-    ? `<h3>${languageName[language]} 参考实现</h3><p>这是通过后解锁的一种写法。先比较思路和复杂度，不必逐行照抄。</p><pre>${escapeHtml(solution)}</pre>`
+    ? `<h3>${languageName[language]} 参考实现</h3><p>这是通过后解锁的一种写法。先比较思路和复杂度，不必逐行照抄。</p><pre><code class="syntax-code language-${language}">${highlightCode(solution, language)}</code></pre>`
     : '<div class="empty-state"><strong>当前语言暂无参考实现</strong><span>可以切换语言查看</span></div>';
 }
 
@@ -609,7 +630,7 @@ async function executeCode(kind) {
     $('#coachFeedback').innerHTML = `<strong>基于本次结果的建议</strong>${escapeHtml(feedback)}`;
     $('#coachFeedback').classList.remove('hidden');
     if (kind === 'submit' && passed && isSolutionVerified(currentProblem) && currentProblem.solutions?.[language]) {
-      $('#solutionReveal').innerHTML = `<header><strong>参考实现 · ${languageName[language]}</strong><span>通过后解锁</span></header><pre>${escapeHtml(currentProblem.solutions[language])}</pre>`;
+      $('#solutionReveal').innerHTML = `<header><strong>参考实现 · ${languageName[language]}</strong><span>通过后解锁</span></header><pre><code class="syntax-code language-${language}">${highlightCode(currentProblem.solutions[language], language)}</code></pre>`;
       $('#solutionReveal').classList.remove('hidden');
       renderReference();
     }
