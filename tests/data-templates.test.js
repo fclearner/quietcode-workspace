@@ -27,7 +27,8 @@ test('starter skeletons do not pass the first example', async () => {
 
 test('imports supplemental ByteDance and TikTok candidates with provenance', () => {
   const candidates = data.problems.filter((problem) => problem.supplementalSources?.length);
-  assert.equal(candidates.length, 13);
+  assert.equal(candidates.length, 23);
   assert.ok(candidates.every((problem) => problem.supplementalSources.every((source) => source.url.startsWith('https://github.com/'))));
   assert.ok(candidates.some((problem) => problem.slug === 'minimum-difference-in-sums-after-removal-of-elements'));
+  assert.ok(candidates.some((problem) => problem.slug === 'decode-ways-ii'));
 });
