@@ -25,6 +25,24 @@ function hasCompleteContent(problem) {
     && ['javascript', 'python', 'cpp'].every((language) => problem.templates?.[language]));
 }
 
+function stableDailyRotation(slug, today) {
+  let hash = 0x811c9dc5;
+  const value = `${today}:${slug}`;
+
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 0x01000193);
+  }
+
+  hash ^= hash >>> 16;
+  hash = Math.imul(hash, 0x85ebca6b);
+  hash ^= hash >>> 13;
+  hash = Math.imul(hash, 0xc2b2ae35);
+  hash ^= hash >>> 16;
+
+  return (hash >>> 0) / 0xffffffff;
+}
+
 function compactProblem(problem, reason, mode, score) {
   return {
     slug: problem.slug,
@@ -119,6 +137,8 @@ function generateGuide(problemData, rawProfile = {}) {
     if (attemptedSet.has(problem.slug)) score += 62 + Math.min(24, pStats.failures * 8);
     const weakMatches = problem.topics.filter((topic) => weakNames.has(topic));
     score += weakMatches.length * 17;
+    const untouched = !attemptedSet.has(problem.slug);
+    if (completeProblems.length && untouched) score += stableDailyRotation(problem.slug, today) * 24;
     if (recentSlugs.has(problem.slug) && !attemptedSet.has(problem.slug)) score -= 8;
     if (!solvedSet.size && problem.difficulty === 'easy') score += 25;
     if (!solvedSet.size && ['Array', 'Hash Table', 'String'].some((topic) => problem.topics.includes(topic))) score += 8;
@@ -138,21 +158,23 @@ function generateGuide(problemData, rawProfile = {}) {
       mode = 'stretch';
       reason = '作为拉伸挑战，用来检验方法迁移和复杂问题拆解能力。';
     }
+    if (untouched && !weakMatches.length) reason += ' 这是今天从未完成题中轮换出的训练项。';
     candidates.push({ problem, score, reason, mode });
   }
   candidates.sort((a, b) => b.score - a.score || a.problem.title.localeCompare(b.problem.title));
 
+  const queueSize = Math.min(candidates.length, Math.max(3, Math.min(5, dailyGoal + 2)));
   const selected = [];
   const selectedPrimaryTopics = new Set();
   for (const candidate of candidates) {
     const primary = candidate.problem.topics[0] || 'General';
-    if (selected.length >= 5) break;
+    if (selected.length >= queueSize) break;
     if (selected.length >= 2 && selectedPrimaryTopics.has(primary) && candidates.length > 10) continue;
     selected.push(compactProblem(candidate.problem, candidate.reason, candidate.mode, candidate.score));
     selectedPrimaryTopics.add(primary);
   }
   for (const candidate of candidates) {
-    if (selected.length >= 5) break;
+    if (selected.length >= queueSize) break;
     if (!selected.some((item) => item.slug === candidate.problem.slug)) selected.push(compactProblem(candidate.problem, candidate.reason, candidate.mode, candidate.score));
   }
 
@@ -197,4 +219,4 @@ function generateGuide(problemData, rawProfile = {}) {
   };
 }
 
-module.exports = { generateGuide, calculateStreak, hasCompleteContent };
+module.exports = { generateGuide, calculateStreak, hasCompleteContent, stableDailyRotation };

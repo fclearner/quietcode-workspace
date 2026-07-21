@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { generateGuide, calculateStreak, hasCompleteContent } = require('../guide-engine');
+const { generateGuide, calculateStreak, hasCompleteContent, stableDailyRotation } = require('../guide-engine');
 
 const problems = [
   { slug: 'array-easy', title: 'Array Easy', difficulty: 'easy', acceptance: 60, topics: ['Array'], companies: [{ name: 'A', frequency: 80 }], examples: [{ input: '1', output: '1' }] },
@@ -12,6 +12,12 @@ const problems = [
 test('calculates consecutive practice days', () => {
   assert.equal(calculateStreak(['2026-07-14', '2026-07-15', '2026-07-16'], '2026-07-16'), 3);
   assert.equal(calculateStreak(['2026-07-14', '2026-07-15'], '2026-07-16'), 2);
+});
+
+test('uses a stable date seed for untouched-item rotation', () => {
+  const today = stableDailyRotation('two-sum', '2026-07-21');
+  assert.equal(today, stableDailyRotation('two-sum', '2026-07-21'));
+  assert.notEqual(today, stableDailyRotation('two-sum', '2026-07-22'));
 });
 
 test('starts a new learner with an easy locally testable recommendation', () => {
@@ -56,4 +62,19 @@ test('excludes metadata-only entries when complete local exercises exist', () =>
   assert.equal(hasCompleteContent(metadataOnly), false);
   const guide = generateGuide({ problems: [metadataOnly, complete] }, { solved: {}, attempted: {}, submissions: [] });
   assert.deepEqual(guide.recommendations.map((item) => item.slug), [complete.slug]);
+});
+
+test('keeps the default daily queue focused and marks rotated items', () => {
+  const completeProblems = Array.from({ length: 5 }, (_, index) => ({
+    ...problems[0],
+    slug: `complete-${index}`,
+    title: `Complete ${index}`,
+    summary: '完整题面', input: '输入', output: '输出',
+    templates: { javascript: '// TODO', python: '# TODO', cpp: '// TODO' }
+  }));
+  const guide = generateGuide({ problems: completeProblems }, {
+    today: '2026-07-21', solved: {}, attempted: {}, submissions: [], dailyGoal: 1
+  });
+  assert.equal(guide.recommendations.length, 3);
+  assert.ok(guide.recommendations.every((item) => item.reason.includes('今天')));
 });
