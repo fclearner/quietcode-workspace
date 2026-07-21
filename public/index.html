@@ -213,6 +213,7 @@
       <label class="setting-row"><span><strong>深色模式</strong><small>切换页面配色</small></span><input id="darkToggle" type="checkbox"></label>
       <label class="setting-row"><span><strong>默认语言</strong><small>打开题目时优先使用</small></span><select id="defaultLanguage"><option value="javascript">JavaScript</option><option value="python">Python 3</option><option value="cpp">C++17</option></select></label>
       <label class="setting-row"><span><strong>每日目标</strong><small>每天计划完成的题目数</small></span><input id="dailyGoal" type="number" min="1" max="20" value="1"></label>
+      <label class="setting-row"><span><strong>训练方向</strong><small>影响今日计划的专项权重</small></span><select id="focusTrack"><option value="bytedance-rainwater">字节 · 双指针与单调栈</option><option value="general">综合高频</option></select></label>
       <div class="dialog-actions"><button id="importDataBtn" type="button" class="secondary-button">导入进度</button><button value="done" class="primary-button">完成</button><input id="importFile" type="file" accept="application/json" hidden></div>
     </form>
   </dialog>

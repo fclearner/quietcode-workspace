@@ -88,6 +88,51 @@ function mergeIntervals(values) {
   return result;
 }
 
+function containerMaxArea(height) {
+  let left = 0;
+  let right = height.length - 1;
+  let best = 0;
+  while (left < right) {
+    best = Math.max(best, Math.min(height[left], height[right]) * (right - left));
+    if (height[left] <= height[right]) left += 1;
+    else right -= 1;
+  }
+  return best;
+}
+
+function trappedWater(height) {
+  let left = 0;
+  let right = height.length - 1;
+  let leftMax = 0;
+  let rightMax = 0;
+  let water = 0;
+  while (left < right) {
+    if (height[left] <= height[right]) {
+      leftMax = Math.max(leftMax, height[left]);
+      water += leftMax - height[left];
+      left += 1;
+    } else {
+      rightMax = Math.max(rightMax, height[right]);
+      water += rightMax - height[right];
+      right -= 1;
+    }
+  }
+  return water;
+}
+
+function warmerDayWaits(temperatures) {
+  const answer = Array(temperatures.length).fill(0);
+  const stack = [];
+  for (let day = 0; day < temperatures.length; day += 1) {
+    while (stack.length && temperatures[day] > temperatures[stack.at(-1)]) {
+      const previous = stack.pop();
+      answer[previous] = day - previous;
+    }
+    stack.push(day);
+  }
+  return answer;
+}
+
 const twoSumCases = [
   ['1 4 6 8\n10', '1 2'],
   ['-3 4 3 90\n0', '0 2'],
@@ -220,6 +265,31 @@ const mergeIntervalInputs = [
   }))
 ];
 
+const containerInputs = [
+  [1, 1], [0, 0], [1, 2], [2, 1], [1, 2, 1], [4, 3, 2, 1, 4],
+  [1, 2, 4, 3], [2, 3, 10, 5, 7, 8, 9], [100000, 1, 100000],
+  [0, 2, 0, 4, 0, 3], [5, 5, 5, 5], [1, 3, 2, 5, 25, 24, 5],
+  ...Array.from({ length: 18 }, (_, seed) => Array.from({ length: 20 + seed * 7 }, (_, index) =>
+    (index * 43 + seed * 29 + Math.floor(index / 3)) % 101))
+];
+
+const rainWaterInputs = [
+  [0], [0, 0], [1, 0], [0, 1], [1, 0, 1], [3, 0, 0, 2, 0, 4],
+  [3, 3, 3], [5, 4, 3, 2, 1], [1, 2, 3, 4, 5], [5, 0, 5],
+  [5, 2, 1, 2, 1, 5], [0, 7, 1, 4, 6], [100000, 0, 0, 100000],
+  [2, 1, 0, 2], [4, 2, 3],
+  ...Array.from({ length: 15 }, (_, seed) => Array.from({ length: 35 + seed * 11 }, (_, index) =>
+    (index * 31 + seed * 17 + Math.floor(index / 5) * 7) % 30))
+];
+
+const temperatureInputs = [
+  [30], [30, 30], [30, 31], [31, 30], [30, 31, 30], [90, 80, 70, 60],
+  [60, 70, 80, 90], [70, 70, 71, 70, 72], [100, 30, 40, 50, 60],
+  [30, 100, 90, 80, 110], [73, 74, 75, 71, 69, 72, 76, 73],
+  ...Array.from({ length: 19 }, (_, seed) => Array.from({ length: 30 + seed * 9 }, (_, index) =>
+    30 + ((index * 19 + seed * 23 + Math.floor(index / 4)) % 71)))
+];
+
 const hiddenCases = {
   'two-sum': twoSumCases.map(([input, output]) => ({ input, output, hidden: true })),
   'valid-parentheses': parenthesesInputs.map((input) => ({ input, output: String(validParentheses(input)), hidden: true })),
@@ -232,7 +302,10 @@ const hiddenCases = {
     input: values.map((item) => item.join(' ')).join('\n'),
     output: mergeIntervals(values).map((item) => item.join(' ')).join('\n'),
     hidden: true
-  }))
+  })),
+  'container-with-most-water': containerInputs.map((values) => ({ input: values.join(' '), output: String(containerMaxArea(values)), hidden: true })),
+  'trapping-rain-water': rainWaterInputs.map((values) => ({ input: values.join(' '), output: String(trappedWater(values)), hidden: true })),
+  'daily-temperatures': temperatureInputs.map((values) => ({ input: values.join(' '), output: warmerDayWaits(values).join(' '), hidden: true }))
 };
 
 function getHiddenTests(slug) {

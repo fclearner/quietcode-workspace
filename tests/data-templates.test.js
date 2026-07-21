@@ -10,7 +10,10 @@ const localSlugs = [
   'design-hashset',
   'longest-substring-without-repeating-characters',
   'maximum-subarray',
-  'merge-intervals'
+  'merge-intervals',
+  'container-with-most-water',
+  'trapping-rain-water',
+  'daily-temperatures'
 ];
 
 test('curated problems start with TODO skeletons and keep answers separately', () => {

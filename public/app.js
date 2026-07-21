@@ -13,9 +13,12 @@ const hiddenCaseCounts = {
   'design-hashset': 25,
   'longest-substring-without-repeating-characters': 30,
   'maximum-subarray': 30,
-  'merge-intervals': 30
+  'merge-intervals': 30,
+  'container-with-most-water': 30,
+  'trapping-rain-water': 30,
+  'daily-temperatures': 30
 };
-const JUDGE_VERSION = 5;
+const JUDGE_VERSION = 6;
 const hiddenJudgeSlugs = Object.keys(hiddenCaseCounts);
 
 function migrateJudgeState(target, savedVersion) {
@@ -25,7 +28,8 @@ function migrateJudgeState(target, savedVersion) {
   const previouslyVerified = [
     ...(version >= 1 ? ['two-sum', 'valid-parentheses', 'best-time-to-buy-and-sell-stock'] : []),
     ...(version >= 2 ? ['lru-cache'] : []),
-    ...(version >= 4 ? ['design-hashset'] : [])
+    ...(version >= 4 ? ['design-hashset'] : []),
+    ...(version >= 5 ? ['longest-substring-without-repeating-characters', 'maximum-subarray', 'merge-intervals'] : [])
   ];
   previouslyVerified.forEach((slug) => {
     if (target.solved[slug]) target.verifiedSolved[slug] = target.solved[slug];
@@ -60,7 +64,7 @@ function reconcileProgress(target) {
 
 const defaultState = {
   solved: {}, verifiedSolved: {}, attempted: {}, favorites: [], submissions: [], drafts: {}, notes: {}, customCases: {}, coachChats: {},
-  settings: { theme: 'light', defaultLanguage: 'javascript', dailyGoal: 1, fontSize: 13 }, templateVersion: 2, judgeVersion: JUDGE_VERSION
+  settings: { theme: 'light', defaultLanguage: 'javascript', dailyGoal: 1, fontSize: 13, focusTrack: 'bytedance-rainwater' }, templateVersion: 2, judgeVersion: JUDGE_VERSION
 };
 
 let data = { problems: [], companies: [] };
@@ -340,6 +344,7 @@ async function refreshGuide(showNotice = false) {
         solved: state.solved,
         attempted: state.attempted,
         dailyGoal: state.settings.dailyGoal,
+        focusTrack: state.settings.focusTrack,
         submissions: state.submissions.slice(0, 300).map(({ slug, kind, passed, createdAt }) => ({ slug, kind, passed, createdAt }))
       })
     });
@@ -363,7 +368,7 @@ function renderGuide() {
   const profile = guide.profile;
   const recommendations = currentRecommendations();
   const difficultyText = { easy: '基础巩固', medium: '稳定进阶', hard: '综合挑战' };
-  const modeText = { retry: '优先回看', weakness: '弱项训练', warmup: '热身', core: '核心', stretch: '挑战', review: '复盘' };
+  const modeText = { retry: '优先回看', weakness: '弱项训练', warmup: '热身', core: '核心', focus: '专项', stretch: '挑战', review: '复盘' };
   $('#guideMessage').textContent = guide.message;
   $('#readinessScore').textContent = profile.readiness;
   $('#readinessRing').style.setProperty('--score', profile.readiness);
@@ -780,10 +785,11 @@ function bindEvents() {
   $('#dailyStart').addEventListener('click', () => dailyProblem && openProblem(dailyProblem.slug));
   $('#randomBtn').addEventListener('click', () => data.problems.length && openProblem(data.problems[Math.floor(Math.random() * data.problems.length)].slug));
   $('#themeBtn').addEventListener('click', () => { state.settings.theme = state.settings.theme === 'dark' ? 'light' : 'dark'; applyTheme(); saveState(); });
-  $('#settingsBtn').addEventListener('click', () => { $('#defaultLanguage').value = state.settings.defaultLanguage; $('#dailyGoal').value = state.settings.dailyGoal; $('#settingsDialog').showModal(); });
+  $('#settingsBtn').addEventListener('click', () => { $('#defaultLanguage').value = state.settings.defaultLanguage; $('#dailyGoal').value = state.settings.dailyGoal; $('#focusTrack').value = state.settings.focusTrack; $('#settingsDialog').showModal(); });
   $('#darkToggle').addEventListener('change', (event) => { state.settings.theme = event.target.checked ? 'dark' : 'light'; applyTheme(); saveState(); });
   $('#defaultLanguage').addEventListener('change', (event) => { state.settings.defaultLanguage = event.target.value; saveState(); });
   $('#dailyGoal').addEventListener('change', (event) => { state.settings.dailyGoal = Math.max(1, Number(event.target.value) || 1); saveState(); });
+  $('#focusTrack').addEventListener('change', async (event) => { state.settings.focusTrack = event.target.value; saveState(); await refreshGuide(true); });
   $('#searchInput').addEventListener('input', (event) => { filters.query = event.target.value; filters.page = 1; renderProblems(); });
   $('#sortSelect').addEventListener('change', (event) => { filters.sort = event.target.value; renderProblems(); });
   $('#companyFilter').addEventListener('change', (event) => { filters.company = event.target.value; filters.page = 1; renderProblems(); });

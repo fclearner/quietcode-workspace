@@ -1,6 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { generateGuide, calculateStreak, hasCompleteContent, stableDailyRotation } = require('../guide-engine');
+const importedData = require('../data/problems.json');
 
 const problems = [
   { slug: 'array-easy', title: 'Array Easy', difficulty: 'easy', acceptance: 60, topics: ['Array'], companies: [{ name: 'A', frequency: 80 }], examples: [{ input: '1', output: '1' }] },
@@ -98,4 +99,16 @@ test('keeps the default daily queue focused and marks rotated items', () => {
   });
   assert.equal(guide.recommendations.length, 3);
   assert.ok(guide.recommendations.every((item) => item.reason.includes('今天')));
+});
+
+test('prioritizes the ByteDance rainwater track when enabled', () => {
+  const completed = ['two-sum', 'valid-parentheses', 'best-time-to-buy-and-sell-stock', 'lru-cache', 'design-hashset'];
+  const solved = Object.fromEntries(completed.map((slug) => [slug, '2026-07-20']));
+  const guide = generateGuide(importedData, {
+    today: '2026-07-21', solved, attempted: solved, submissions: [], dailyGoal: 1,
+    focusTrack: 'bytedance-rainwater'
+  });
+  assert.equal(guide.recommendations[0].slug, 'trapping-rain-water');
+  assert.equal(guide.recommendations[0].mode, 'focus');
+  assert.match(guide.message, /字节接雨水专项/);
 });
