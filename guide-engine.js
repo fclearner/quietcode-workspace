@@ -131,11 +131,19 @@ function generateGuide(problemData, rawProfile = {}) {
   const completeProblems = problems.filter(hasCompleteContent);
   const practiceProblems = completeProblems.length ? completeProblems : problems;
   const rainwaterTrack = new Map([
-    ['trapping-rain-water', 90],
-    ['container-with-most-water', 52],
-    ['daily-temperatures', 48],
-    ['largest-rectangle-in-histogram', 42]
+    ['trapping-rain-water', 80],
+    ['container-with-most-water', 62],
+    ['daily-temperatures', 62],
+    ['largest-rectangle-in-histogram', 62]
   ]);
+  const availableFocusSlugs = [...rainwaterTrack.keys()].filter((slug) => {
+    const problem = problemBySlug.get(slug);
+    return problem && hasCompleteContent(problem) && !solvedSet.has(slug) && attempted[slug] !== today;
+  });
+  const daySerial = Math.floor(Date.parse(`${today}T00:00:00Z`) / 86_400_000);
+  const dailyFocusSlug = focusTrack === 'bytedance-rainwater' && availableFocusSlugs.length
+    ? availableFocusSlugs[((daySerial % availableFocusSlugs.length) + availableFocusSlugs.length) % availableFocusSlugs.length]
+    : '';
 
   for (const problem of practiceProblems) {
     if (solvedSet.has(problem.slug)) continue;
@@ -143,12 +151,13 @@ function generateGuide(problemData, rawProfile = {}) {
     const pStats = perProblem.get(problem.slug) || { failures: 0, passes: 0 };
     const frequency = Math.max(0, ...problem.companies.map((item) => item.frequency || 0));
     let score = frequency * .28 + Math.log2(problem.companies.length + 1) * 3;
-    const focusBoost = focusTrack === 'bytedance-rainwater' ? rainwaterTrack.get(problem.slug) || 0 : 0;
+    const focusBoost = problem.slug === dailyFocusSlug ? rainwaterTrack.get(problem.slug) || 0 : 0;
     if (focusTrack === 'bytedance-rainwater') {
       const targetFrequency = Math.max(0, ...problem.companies
         .filter((item) => item.name === 'ByteDance' || item.name === 'TikTok')
         .map((item) => item.frequency || 0));
-      score += targetFrequency * .1 + focusBoost;
+      const relatedBoost = rainwaterTrack.has(problem.slug) ? 8 : 0;
+      score += targetFrequency * .1 + relatedBoost + focusBoost;
     }
     if (problem.difficulty === targetDifficulty) score += 28;
     else if (targetDifficulty === 'medium' && problem.difficulty === 'easy') score += 9;
@@ -186,9 +195,10 @@ function generateGuide(problemData, rawProfile = {}) {
         : '字节接雨水专项铺垫题：训练双指针或单调栈，为核心题建立可迁移的方法。';
     }
     if (untouched && !weakMatches.length) reason += ' 这是今天从未完成题中轮换出的训练项。';
-    candidates.push({ problem, score, reason, mode });
+    const priority = attemptedSet.has(problem.slug) ? 3 : weakMatches.length ? 2 : focusBoost ? 1 : 0;
+    candidates.push({ problem, score, reason, mode, priority });
   }
-  candidates.sort((a, b) => b.score - a.score || a.problem.title.localeCompare(b.problem.title));
+  candidates.sort((a, b) => b.priority - a.priority || b.score - a.score || a.problem.title.localeCompare(b.problem.title));
 
   const queueSize = Math.min(candidates.length, Math.max(3, Math.min(5, dailyGoal + 2)));
   const selected = [];
@@ -223,7 +233,12 @@ function generateGuide(problemData, rawProfile = {}) {
   } else {
     message = '当前节奏正常。我会优先安排高频核心内容，并根据接下来的通过情况动态调整难度。';
   }
-  if (focusTrack === 'bytedance-rainwater') message += ' 已启用字节接雨水专项，会增加双指针与单调栈训练。';
+  if (focusTrack === 'bytedance-rainwater') {
+    const focusTitle = problemBySlug.get(dailyFocusSlug)?.title;
+    message += focusTitle
+      ? ` 已启用字节接雨水专项，今天的专项主任务是「${focusTitle}」。`
+      : ' 已启用字节接雨水专项，当前专项题已完成或今天已经练过。';
+  }
 
   const readiness = clamp(Math.round(35 + Math.min(30, solvedSet.size * 2) + passRate * 25 + Math.min(10, streak * 2) - Math.min(15, weakTopics.reduce((sum, item) => sum + item.struggling, 0) * 2)), 20, 96);
   return {
@@ -239,7 +254,8 @@ function generateGuide(problemData, rawProfile = {}) {
       streak,
       readiness,
       targetDifficulty,
-      focusTrack
+      focusTrack,
+      focusProblemSlug: dailyFocusSlug
     },
     weakTopics,
     strongTopics,
