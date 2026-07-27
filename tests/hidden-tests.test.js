@@ -14,7 +14,10 @@ const programs = {
   'merge-intervals': String.raw`const a=require('fs').readFileSync(0,'utf8').trim().split(/\n/).map(x=>x.split(/\s+/).map(Number)).sort((x,y)=>x[0]-y[0]||x[1]-y[1]),out=[];for(const x of a){const last=out.at(-1);if(!last||x[0]>last[1])out.push(x.slice());else last[1]=Math.max(last[1],x[1])}console.log(out.map(x=>x.join(' ')).join('\n'))`,
   'container-with-most-water': String.raw`const a=require('fs').readFileSync(0,'utf8').trim().split(/\s+/).map(Number);let l=0,r=a.length-1,best=0;while(l<r){best=Math.max(best,Math.min(a[l],a[r])*(r-l));if(a[l]<=a[r])l++;else r--}console.log(best)`,
   'trapping-rain-water': String.raw`const a=require('fs').readFileSync(0,'utf8').trim().split(/\s+/).map(Number);let l=0,r=a.length-1,lm=0,rm=0,water=0;while(l<r){if(a[l]<=a[r]){lm=Math.max(lm,a[l]);water+=lm-a[l++]}else{rm=Math.max(rm,a[r]);water+=rm-a[r--]}}console.log(water)`,
-  'daily-temperatures': String.raw`const a=require('fs').readFileSync(0,'utf8').trim().split(/\s+/).map(Number),answer=Array(a.length).fill(0),stack=[];for(let i=0;i<a.length;i++){while(stack.length&&a[i]>a[stack.at(-1)]){const j=stack.pop();answer[j]=i-j}stack.push(i)}console.log(answer.join(' '))`
+  'daily-temperatures': String.raw`const a=require('fs').readFileSync(0,'utf8').trim().split(/\s+/).map(Number),answer=Array(a.length).fill(0),stack=[];for(let i=0;i<a.length;i++){while(stack.length&&a[i]>a[stack.at(-1)]){const j=stack.pop();answer[j]=i-j}stack.push(i)}console.log(answer.join(' '))`,
+  'largest-rectangle-in-histogram': String.raw`const a=require('fs').readFileSync(0,'utf8').trim().split(/\s+/).map(Number),stack=[];let best=0;for(let r=0;r<=a.length;r++){const current=r===a.length?0:a[r];while(stack.length&&a[stack.at(-1)]>current){const height=a[stack.pop()],left=stack.length?stack.at(-1)+1:0;best=Math.max(best,height*(r-left))}stack.push(r)}console.log(best)`,
+  'sliding-window-maximum': String.raw`const lines=require('fs').readFileSync(0,'utf8').trim().split(/\n/),a=lines[0].split(/\s+/).map(Number),k=Number(lines[1]),deque=[],answer=[];let head=0;for(let r=0;r<a.length;r++){while(head<deque.length&&deque[head]<=r-k)head++;while(deque.length>head&&a[deque.at(-1)]<=a[r])deque.pop();deque.push(r);if(r>=k-1)answer.push(a[deque[head]])}console.log(answer.join(' '))`,
+  'minimum-window-substring': String.raw`const lines=require('fs').readFileSync(0,'utf8').split(/\r?\n/),s=lines[0]||'',t=lines[1]||'',need=new Map();for(const c of t)need.set(c,(need.get(c)||0)+1);let missing=t.length,left=0,start=0,length=Infinity;for(let right=0;right<s.length;right++){const c=s[right];if((need.get(c)||0)>0)missing--;need.set(c,(need.get(c)||0)-1);while(missing===0){if(right-left+1<length){start=left;length=right-left+1}const removed=s[left++];need.set(removed,(need.get(removed)||0)+1);if(need.get(removed)>0)missing++}}console.log(length===Infinity?'':s.slice(start,start+length))`
 };
 
 test('keeps substantial hidden suites on the server', () => {
@@ -29,6 +32,9 @@ test('keeps substantial hidden suites on the server', () => {
   assert.equal(getHiddenTestCount('container-with-most-water'), 30);
   assert.equal(getHiddenTestCount('trapping-rain-water'), 30);
   assert.equal(getHiddenTestCount('daily-temperatures'), 30);
+  assert.equal(getHiddenTestCount('largest-rectangle-in-histogram'), 30);
+  assert.equal(getHiddenTestCount('sliding-window-maximum'), 30);
+  assert.equal(getHiddenTestCount('minimum-window-substring'), 30);
   assert.equal(getHiddenTestCount('unknown-problem'), 0);
 });
 

@@ -102,13 +102,17 @@ test('keeps the default daily queue focused and marks rotated items', () => {
 });
 
 test('prioritizes the ByteDance rainwater track when enabled', () => {
-  const completed = ['two-sum', 'valid-parentheses', 'best-time-to-buy-and-sell-stock', 'lru-cache', 'design-hashset'];
+  const completed = [
+    'two-sum', 'valid-parentheses', 'best-time-to-buy-and-sell-stock', 'lru-cache', 'design-hashset',
+    'longest-substring-without-repeating-characters', 'maximum-subarray', 'merge-intervals',
+    'container-with-most-water', 'trapping-rain-water', 'daily-temperatures'
+  ];
   const solved = Object.fromEntries(completed.map((slug) => [slug, '2026-07-20']));
   const guide = generateGuide(importedData, {
     today: '2026-07-21', solved, attempted: solved, submissions: [], dailyGoal: 1,
     focusTrack: 'bytedance-rainwater'
   });
-  assert.equal(guide.recommendations[0].slug, 'container-with-most-water');
+  assert.equal(guide.recommendations[0].slug, 'largest-rectangle-in-histogram');
   assert.equal(guide.recommendations[0].mode, 'focus');
   assert.match(guide.message, /字节接雨水专项/);
   const nextDay = generateGuide(importedData, {
@@ -117,17 +121,17 @@ test('prioritizes the ByteDance rainwater track when enabled', () => {
   });
   assert.notEqual(nextDay.profile.focusProblemSlug, guide.profile.focusProblemSlug);
   assert.equal(nextDay.recommendations[0].slug, nextDay.profile.focusProblemSlug);
-  assert.equal(nextDay.profile.focusProblemSlug, 'daily-temperatures');
+  assert.equal(nextDay.profile.focusProblemSlug, 'sliding-window-maximum');
   const thirdDay = generateGuide(importedData, {
     today: '2026-07-23', solved, attempted: solved, submissions: [], dailyGoal: 1,
     focusTrack: 'bytedance-rainwater'
   });
-  assert.equal(thirdDay.profile.focusProblemSlug, 'trapping-rain-water');
+  assert.equal(thirdDay.profile.focusProblemSlug, 'minimum-window-substring');
   const rerolled = generateGuide(importedData, {
     today: '2026-07-21', solved, attempted: solved, submissions: [], dailyGoal: 1,
     focusTrack: 'bytedance-rainwater', rotationOffset: 1
   });
   assert.equal(rerolled.profile.rotationOffset, 1);
-  assert.equal(rerolled.profile.focusProblemSlug, 'daily-temperatures');
+  assert.equal(rerolled.profile.focusProblemSlug, 'sliding-window-maximum');
   assert.notDeepEqual(rerolled.recommendations.map((item) => item.slug), guide.recommendations.map((item) => item.slug));
 });

@@ -37,9 +37,12 @@ const hiddenCaseCounts = {
   'merge-intervals': 30,
   'container-with-most-water': 30,
   'trapping-rain-water': 30,
-  'daily-temperatures': 30
+  'daily-temperatures': 30,
+  'largest-rectangle-in-histogram': 30,
+  'sliding-window-maximum': 30,
+  'minimum-window-substring': 30
 };
-const JUDGE_VERSION = 6;
+const JUDGE_VERSION = 7;
 const hiddenJudgeSlugs = Object.keys(hiddenCaseCounts);
 
 function migrateJudgeState(target, savedVersion) {
@@ -50,7 +53,8 @@ function migrateJudgeState(target, savedVersion) {
     ...(version >= 1 ? ['two-sum', 'valid-parentheses', 'best-time-to-buy-and-sell-stock'] : []),
     ...(version >= 2 ? ['lru-cache'] : []),
     ...(version >= 4 ? ['design-hashset'] : []),
-    ...(version >= 5 ? ['longest-substring-without-repeating-characters', 'maximum-subarray', 'merge-intervals'] : [])
+    ...(version >= 5 ? ['longest-substring-without-repeating-characters', 'maximum-subarray', 'merge-intervals'] : []),
+    ...(version >= 6 ? ['container-with-most-water', 'trapping-rain-water', 'daily-temperatures'] : [])
   ];
   previouslyVerified.forEach((slug) => {
     if (target.solved[slug]) target.verifiedSolved[slug] = target.solved[slug];

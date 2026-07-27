@@ -133,6 +133,59 @@ function warmerDayWaits(temperatures) {
   return answer;
 }
 
+function largestHistogramRectangle(heights) {
+  const stack = [];
+  let best = 0;
+  for (let right = 0; right <= heights.length; right += 1) {
+    const current = right === heights.length ? 0 : heights[right];
+    while (stack.length && heights[stack.at(-1)] > current) {
+      const height = heights[stack.pop()];
+      const left = stack.length ? stack.at(-1) + 1 : 0;
+      best = Math.max(best, height * (right - left));
+    }
+    stack.push(right);
+  }
+  return best;
+}
+
+function slidingWindowMaximum(values, size) {
+  const deque = [];
+  const answer = [];
+  let head = 0;
+  for (let right = 0; right < values.length; right += 1) {
+    while (head < deque.length && deque[head] <= right - size) head += 1;
+    while (deque.length > head && values[deque.at(-1)] <= values[right]) deque.pop();
+    deque.push(right);
+    if (right >= size - 1) answer.push(values[deque[head]]);
+  }
+  return answer;
+}
+
+function minimumWindow(source, target) {
+  if (!target.length) return '';
+  const need = new Map();
+  for (const char of target) need.set(char, (need.get(char) || 0) + 1);
+  let missing = target.length;
+  let left = 0;
+  let bestStart = 0;
+  let bestLength = Infinity;
+  for (let right = 0; right < source.length; right += 1) {
+    const char = source[right];
+    if ((need.get(char) || 0) > 0) missing -= 1;
+    need.set(char, (need.get(char) || 0) - 1);
+    while (missing === 0) {
+      if (right - left + 1 < bestLength) {
+        bestStart = left;
+        bestLength = right - left + 1;
+      }
+      const removed = source[left++];
+      need.set(removed, (need.get(removed) || 0) + 1);
+      if (need.get(removed) > 0) missing += 1;
+    }
+  }
+  return bestLength === Infinity ? '' : source.slice(bestStart, bestStart + bestLength);
+}
+
 const twoSumCases = [
   ['1 4 6 8\n10', '1 2'],
   ['-3 4 3 90\n0', '0 2'],
@@ -290,6 +343,49 @@ const temperatureInputs = [
     30 + ((index * 19 + seed * 23 + Math.floor(index / 4)) % 71)))
 ];
 
+const histogramInputs = [
+  [0], [1], [0, 0], [2, 1, 2], [2, 4], [4, 2], [1, 2, 3, 4, 5],
+  [5, 4, 3, 2, 1], [3, 3, 3], [6, 2, 5, 4, 5, 1, 6], [0, 2, 0],
+  [100000], [100000, 100000], [1, 0, 1, 0, 1], [5, 1, 5, 1, 5],
+  ...Array.from({ length: 15 }, (_, seed) => Array.from({ length: 40 + seed * 13 }, (_, index) =>
+    (index * 47 + seed * 31 + Math.floor(index / 7)) % 80))
+];
+
+const slidingWindowInputs = [
+  { values: [1], size: 1 },
+  { values: [1, 2], size: 1 },
+  { values: [1, 2], size: 2 },
+  { values: [2, 1], size: 2 },
+  { values: [4, 4, 4], size: 2 },
+  { values: [9, 8, 7, 6], size: 3 },
+  { values: [1, 2, 3, 4], size: 4 },
+  { values: [-1, -3, -2, -5], size: 2 },
+  { values: [7, 2, 4], size: 2 },
+  { values: [1, 3, 1, 2, 0, 5], size: 3 },
+  { values: [100000, -100000, 100000], size: 2 },
+  { values: [5, 1, 5, 1, 5], size: 1 },
+  { values: [5, 1, 5, 1, 5], size: 5 },
+  { values: [2, 2, 1, 2, 2], size: 3 },
+  { values: [10, 9, 8, 20, 7, 6], size: 4 },
+  ...Array.from({ length: 15 }, (_, seed) => {
+    const values = Array.from({ length: 50 + seed * 11 }, (_, index) => ((index * 83 + seed * 37) % 401) - 200);
+    return { values, size: 1 + ((seed * 7 + 3) % values.length) };
+  })
+];
+
+const minimumWindowInputs = [
+  ['a', 'a'], ['a', 'b'], ['aa', 'aa'], ['ab', 'b'], ['bba', 'ab'],
+  ['ADOBECODEBANC', 'ABC'], ['aaabdabcefaecbef', 'abc'], ['abc', 'ac'],
+  ['ab', 'A'], ['aAaBbBc', 'ABC'], ['this is a test string', 'tist'],
+  ['cabefgecdaecf', 'cae'], ['xyyzyzyx', 'xyz'], ['abcdef', 'fed'], ['abc', 'dddd'],
+  ...Array.from({ length: 15 }, (_, seed) => {
+    const alphabet = 'ABCDEFGH';
+    const source = Array.from({ length: 70 + seed * 9 }, (_, index) => alphabet[(index * 5 + seed * 3 + Math.floor(index / 6)) % alphabet.length]).join('');
+    const target = seed % 4 === 0 ? 'ZZ' : `${alphabet[seed % alphabet.length]}${alphabet[(seed * 3 + 1) % alphabet.length]}${alphabet[(seed * 5 + 2) % alphabet.length]}`;
+    return [source, target];
+  })
+];
+
 const hiddenCases = {
   'two-sum': twoSumCases.map(([input, output]) => ({ input, output, hidden: true })),
   'valid-parentheses': parenthesesInputs.map((input) => ({ input, output: String(validParentheses(input)), hidden: true })),
@@ -305,7 +401,10 @@ const hiddenCases = {
   })),
   'container-with-most-water': containerInputs.map((values) => ({ input: values.join(' '), output: String(containerMaxArea(values)), hidden: true })),
   'trapping-rain-water': rainWaterInputs.map((values) => ({ input: values.join(' '), output: String(trappedWater(values)), hidden: true })),
-  'daily-temperatures': temperatureInputs.map((values) => ({ input: values.join(' '), output: warmerDayWaits(values).join(' '), hidden: true }))
+  'daily-temperatures': temperatureInputs.map((values) => ({ input: values.join(' '), output: warmerDayWaits(values).join(' '), hidden: true })),
+  'largest-rectangle-in-histogram': histogramInputs.map((values) => ({ input: values.join(' '), output: String(largestHistogramRectangle(values)), hidden: true })),
+  'sliding-window-maximum': slidingWindowInputs.map(({ values, size }) => ({ input: `${values.join(' ')}\n${size}`, output: slidingWindowMaximum(values, size).join(' '), hidden: true })),
+  'minimum-window-substring': minimumWindowInputs.map(([source, target]) => ({ input: `${source}\n${target}`, output: minimumWindow(source, target), hidden: true }))
 };
 
 function getHiddenTests(slug) {

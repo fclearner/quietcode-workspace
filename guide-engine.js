@@ -135,7 +135,9 @@ function generateGuide(problemData, rawProfile = {}) {
     ['container-with-most-water', 62],
     ['daily-temperatures', 62],
     ['trapping-rain-water', 80],
-    ['largest-rectangle-in-histogram', 62]
+    ['largest-rectangle-in-histogram', 62],
+    ['sliding-window-maximum', 54],
+    ['minimum-window-substring', 50]
   ]);
   const availableFocusSlugs = [...rainwaterTrack.keys()].filter((slug) => {
     const problem = problemBySlug.get(slug);
@@ -193,7 +195,7 @@ function generateGuide(problemData, rawProfile = {}) {
       mode = 'focus';
       reason = problem.slug === 'trapping-rain-water'
         ? '字节接雨水专项核心题：重点掌握双指针不变量，并能解释为什么移动较矮的一侧。'
-        : '字节接雨水专项铺垫题：训练双指针或单调栈，为核心题建立可迁移的方法。';
+        : '字节专项进阶题：训练双指针、滑动窗口或单调结构，强化与接雨水相通的不变量思维。';
     }
     if (untouched && !weakMatches.length) reason += ' 这是今天从未完成题中轮换出的训练项。';
     const priority = attemptedSet.has(problem.slug) ? 3 : weakMatches.length ? 2 : focusBoost ? 1 : 0;

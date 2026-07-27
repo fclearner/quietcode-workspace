@@ -13,7 +13,10 @@ const localSlugs = [
   'merge-intervals',
   'container-with-most-water',
   'trapping-rain-water',
-  'daily-temperatures'
+  'daily-temperatures',
+  'largest-rectangle-in-histogram',
+  'sliding-window-maximum',
+  'minimum-window-substring'
 ];
 
 test('curated problems start with TODO skeletons and keep answers separately', () => {
