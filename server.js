@@ -19,6 +19,8 @@ const COACH_TIMEOUT = 120_000;
 let activeCoachRuns = 0;
 let problemDataCache;
 let codexAvailability;
+let guideRequestSequence = 0;
+let lastGuideDiagnostic = null;
 
 function getProblemData() {
   if (!problemDataCache) problemDataCache = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
@@ -458,10 +460,26 @@ async function api(req, res, pathname) {
     try {
       if (!fs.existsSync(DATA_FILE)) throw new Error('题库尚未构建');
       const profile = await readBody(req);
-      return json(res, 200, generateGuide(getProblemData(), profile));
+      const guide = generateGuide(getProblemData(), profile);
+      const requestId = ++guideRequestSequence;
+      guide.requestId = requestId;
+      lastGuideDiagnostic = {
+        requestId,
+        receivedAt: new Date().toISOString(),
+        today: profile.today || '',
+        focusTrack: profile.focusTrack || '',
+        rotationOffset: Number(profile.rotationOffset) || 0,
+        solvedCountReceived: profile.solved && typeof profile.solved === 'object' ? Object.keys(profile.solved).length : 0,
+        attemptedCountReceived: profile.attempted && typeof profile.attempted === 'object' ? Object.keys(profile.attempted).length : 0,
+        recommendations: guide.recommendations.map((item) => item.slug)
+      };
+      return json(res, 200, guide);
     } catch (error) {
       return json(res, 400, { error: error.message });
     }
+  }
+  if (req.method === 'GET' && pathname === '/api/guide/status') {
+    return json(res, 200, { ok: true, lastRequest: lastGuideDiagnostic });
   }
   if (req.method === 'GET' && pathname === '/api/coach/status') {
     const available = await detectCodex();

@@ -419,7 +419,8 @@ function renderGuide() {
   $('#guidePassRate').textContent = profile.submissionCount ? `${profile.passRate}%` : '待积累';
   $('#guideAttempted').textContent = profile.attemptedCount;
   $('#guideStreak').textContent = `${profile.streak} 天`;
-  $('#guideUpdatedAt').textContent = `更新于 ${new Date(guide.generatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · 批次 ${profile.rotationOffset + 1}`;
+  const requestLabel = guide.requestId ? ` · 请求 #${guide.requestId}` : '';
+  $('#guideUpdatedAt').textContent = `更新于 ${new Date(guide.generatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · 批次 ${profile.rotationOffset + 1}${requestLabel}`;
   $('#startRecommendation').disabled = !recommendations.length;
   $('#recommendationList').innerHTML = recommendations.length ? recommendations.map((item, index) => `
     <article class="recommendation-item" data-guide-slug="${item.slug}">
