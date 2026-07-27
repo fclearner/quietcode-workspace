@@ -66,6 +66,7 @@ function generateGuide(problemData, rawProfile = {}) {
   const attempted = rawProfile.attempted && typeof rawProfile.attempted === 'object' ? { ...rawProfile.attempted } : {};
   const submissions = Array.isArray(rawProfile.submissions) ? rawProfile.submissions.slice(0, 300) : [];
   const dailyGoal = clamp(Number(rawProfile.dailyGoal) || 1, 1, 20);
+  const rotationOffset = clamp(Number(rawProfile.rotationOffset) || 0, 0, 999);
   const focusTrack = rawProfile.focusTrack === 'general' ? 'general' : 'bytedance-rainwater';
   const problemBySlug = new Map(problems.map((problem) => [problem.slug, problem]));
   for (const submission of submissions) {
@@ -142,7 +143,7 @@ function generateGuide(problemData, rawProfile = {}) {
   });
   const daySerial = Math.floor(Date.parse(`${today}T00:00:00Z`) / 86_400_000);
   const dailyFocusSlug = focusTrack === 'bytedance-rainwater' && availableFocusSlugs.length
-    ? availableFocusSlugs[((daySerial % availableFocusSlugs.length) + availableFocusSlugs.length) % availableFocusSlugs.length]
+    ? availableFocusSlugs[(((daySerial + rotationOffset) % availableFocusSlugs.length) + availableFocusSlugs.length) % availableFocusSlugs.length]
     : '';
 
   for (const problem of practiceProblems) {
@@ -168,7 +169,7 @@ function generateGuide(problemData, rawProfile = {}) {
     const weakMatches = problem.topics.filter((topic) => weakNames.has(topic));
     score += weakMatches.length * 17;
     const untouched = !attemptedSet.has(problem.slug);
-    if (completeProblems.length && untouched) score += stableDailyRotation(problem.slug, today) * 24;
+    if (completeProblems.length && untouched) score += stableDailyRotation(problem.slug, `${today}:${rotationOffset}`) * 24;
     if (recentSlugs.has(problem.slug) && !attemptedSet.has(problem.slug)) score -= 8;
     if (!solvedSet.size && problem.difficulty === 'easy') score += 25;
     if (!solvedSet.size && ['Array', 'Hash Table', 'String'].some((topic) => problem.topics.includes(topic))) score += 8;
@@ -255,7 +256,8 @@ function generateGuide(problemData, rawProfile = {}) {
       readiness,
       targetDifficulty,
       focusTrack,
-      focusProblemSlug: dailyFocusSlug
+      focusProblemSlug: dailyFocusSlug,
+      rotationOffset
     },
     weakTopics,
     strongTopics,

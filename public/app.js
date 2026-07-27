@@ -85,7 +85,8 @@ function reconcileProgress(target) {
 
 const defaultState = {
   solved: {}, verifiedSolved: {}, attempted: {}, favorites: [], submissions: [], drafts: {}, notes: {}, customCases: {}, coachChats: {},
-  settings: { theme: 'light', defaultLanguage: 'javascript', dailyGoal: 1, fontSize: 13, focusTrack: 'bytedance-rainwater' }, templateVersion: 2, judgeVersion: JUDGE_VERSION
+  settings: { theme: 'light', defaultLanguage: 'javascript', dailyGoal: 1, fontSize: 13, focusTrack: 'bytedance-rainwater' },
+  guideRotation: { date: '', offset: 0 }, templateVersion: 2, judgeVersion: JUDGE_VERSION
 };
 
 let data = { problems: [], companies: [] };
@@ -159,6 +160,23 @@ function showToast(message) {
 
 function dateKey(date = new Date()) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
+function currentGuideRotation() {
+  const today = dateKey();
+  if (!state.guideRotation || state.guideRotation.date !== today) {
+    state.guideRotation = { date: today, offset: 0 };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  }
+  state.guideRotation.offset = Math.max(0, Number(state.guideRotation.offset) || 0);
+  return state.guideRotation;
+}
+
+async function rotateGuide() {
+  const rotation = currentGuideRotation();
+  rotation.offset += 1;
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  await refreshGuide(true);
 }
 
 function getStatus(slug) {
@@ -368,6 +386,7 @@ async function refreshGuide(showNotice = false) {
         attempted: state.attempted,
         dailyGoal: state.settings.dailyGoal,
         focusTrack: state.settings.focusTrack,
+        rotationOffset: currentGuideRotation().offset,
         submissions: state.submissions.slice(0, 300).map(({ slug, kind, passed, createdAt }) => ({ slug, kind, passed, createdAt }))
       })
     });
@@ -400,7 +419,7 @@ function renderGuide() {
   $('#guidePassRate').textContent = profile.submissionCount ? `${profile.passRate}%` : '待积累';
   $('#guideAttempted').textContent = profile.attemptedCount;
   $('#guideStreak').textContent = `${profile.streak} 天`;
-  $('#guideUpdatedAt').textContent = `更新于 ${new Date(guide.generatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+  $('#guideUpdatedAt').textContent = `更新于 ${new Date(guide.generatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · 批次 ${profile.rotationOffset + 1}`;
   $('#startRecommendation').disabled = !recommendations.length;
   $('#recommendationList').innerHTML = recommendations.length ? recommendations.map((item, index) => `
     <article class="recommendation-item" data-guide-slug="${item.slug}">
@@ -847,7 +866,7 @@ function bindEvents() {
   $('#addCase').addEventListener('click', () => { state.customCases[currentProblem.slug] ||= []; state.customCases[currentProblem.slug].push({ input: '', output: '' }); currentCase = (currentProblem.examples?.length || 0) + state.customCases[currentProblem.slug].length - 1; saveState(); renderCases(); });
   $('#exportData').addEventListener('click', exportState);
   $('#startRecommendation').addEventListener('click', () => currentRecommendations()[0] && openProblem(currentRecommendations()[0].slug));
-  $('#refreshGuide').addEventListener('click', () => refreshGuide(true));
+  $('#refreshGuide').addEventListener('click', rotateGuide);
   $('#recommendationList').addEventListener('click', (event) => { const item = event.target.closest('[data-guide-slug]'); if (item) openProblem(item.dataset.guideSlug); });
   $('#reviewList').addEventListener('click', (event) => { const item = event.target.closest('[data-guide-slug]'); if (item) openProblem(item.dataset.guideSlug); });
   $('#clearSubmissions').addEventListener('click', () => { if (confirm('确定清空全部提交记录吗？')) { state.submissions = []; saveState(); renderSubmissions(); } });

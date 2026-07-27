@@ -123,4 +123,11 @@ test('prioritizes the ByteDance rainwater track when enabled', () => {
     focusTrack: 'bytedance-rainwater'
   });
   assert.equal(thirdDay.profile.focusProblemSlug, 'trapping-rain-water');
+  const rerolled = generateGuide(importedData, {
+    today: '2026-07-21', solved, attempted: solved, submissions: [], dailyGoal: 1,
+    focusTrack: 'bytedance-rainwater', rotationOffset: 1
+  });
+  assert.equal(rerolled.profile.rotationOffset, 1);
+  assert.equal(rerolled.profile.focusProblemSlug, 'daily-temperatures');
+  assert.notDeepEqual(rerolled.recommendations.map((item) => item.slug), guide.recommendations.map((item) => item.slug));
 });
