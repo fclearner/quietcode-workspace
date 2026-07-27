@@ -108,7 +108,7 @@ test('prioritizes the ByteDance rainwater track when enabled', () => {
     today: '2026-07-21', solved, attempted: solved, submissions: [], dailyGoal: 1,
     focusTrack: 'bytedance-rainwater'
   });
-  assert.equal(guide.recommendations[0].slug, 'trapping-rain-water');
+  assert.equal(guide.recommendations[0].slug, 'container-with-most-water');
   assert.equal(guide.recommendations[0].mode, 'focus');
   assert.match(guide.message, /字节接雨水专项/);
   const nextDay = generateGuide(importedData, {
@@ -117,4 +117,10 @@ test('prioritizes the ByteDance rainwater track when enabled', () => {
   });
   assert.notEqual(nextDay.profile.focusProblemSlug, guide.profile.focusProblemSlug);
   assert.equal(nextDay.recommendations[0].slug, nextDay.profile.focusProblemSlug);
+  assert.equal(nextDay.profile.focusProblemSlug, 'daily-temperatures');
+  const thirdDay = generateGuide(importedData, {
+    today: '2026-07-23', solved, attempted: solved, submissions: [], dailyGoal: 1,
+    focusTrack: 'bytedance-rainwater'
+  });
+  assert.equal(thirdDay.profile.focusProblemSlug, 'trapping-rain-water');
 });

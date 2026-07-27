@@ -232,6 +232,8 @@ function hydrateFilters() {
 
 function chooseDaily() {
   const seed = Number(dateKey().replaceAll('-', ''));
+  const [, month, day] = dateKey().split('-');
+  $('#dailyLabel').textContent = `今日计划 · ${month}/${day}`;
   const pool = data.problems.filter((problem) => hasLocalContent(problem)
     && !state.solved[problem.slug] && state.attempted[problem.slug] !== dateKey());
   const guided = currentRecommendations()[0];

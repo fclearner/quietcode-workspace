@@ -131,9 +131,9 @@ function generateGuide(problemData, rawProfile = {}) {
   const completeProblems = problems.filter(hasCompleteContent);
   const practiceProblems = completeProblems.length ? completeProblems : problems;
   const rainwaterTrack = new Map([
-    ['trapping-rain-water', 80],
     ['container-with-most-water', 62],
     ['daily-temperatures', 62],
+    ['trapping-rain-water', 80],
     ['largest-rectangle-in-histogram', 62]
   ]);
   const availableFocusSlugs = [...rainwaterTrack.keys()].filter((slug) => {
