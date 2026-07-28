@@ -16,7 +16,10 @@ const localSlugs = [
   'daily-temperatures',
   'largest-rectangle-in-histogram',
   'sliding-window-maximum',
-  'minimum-window-substring'
+  'minimum-window-substring',
+  'next-greater-element-ii',
+  'sum-of-subarray-minimums',
+  'remove-k-digits'
 ];
 
 test('curated problems start with TODO skeletons and keep answers separately', () => {

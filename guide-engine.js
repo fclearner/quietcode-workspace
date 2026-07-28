@@ -137,7 +137,10 @@ function generateGuide(problemData, rawProfile = {}) {
     ['trapping-rain-water', 80],
     ['largest-rectangle-in-histogram', 62],
     ['sliding-window-maximum', 54],
-    ['minimum-window-substring', 50]
+    ['minimum-window-substring', 50],
+    ['next-greater-element-ii', 58],
+    ['sum-of-subarray-minimums', 60],
+    ['remove-k-digits', 56]
   ]);
   const availableFocusSlugs = [...rainwaterTrack.keys()].filter((slug) => {
     const problem = problemBySlug.get(slug);

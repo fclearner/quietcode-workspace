@@ -186,6 +186,46 @@ function minimumWindow(source, target) {
   return bestLength === Infinity ? '' : source.slice(bestStart, bestStart + bestLength);
 }
 
+function removeDigits(number, count) {
+  const stack = [];
+  for (const digit of number) {
+    while (count > 0 && stack.length && stack.at(-1) > digit) {
+      stack.pop();
+      count -= 1;
+    }
+    stack.push(digit);
+  }
+  while (count-- > 0) stack.pop();
+  return stack.join('').replace(/^0+/, '') || '0';
+}
+
+function circularNextGreater(values) {
+  const answer = Array(values.length).fill(-1);
+  const stack = [];
+  for (let index = 0; index < values.length * 2; index += 1) {
+    const current = index % values.length;
+    while (stack.length && values[stack.at(-1)] < values[current]) answer[stack.pop()] = values[current];
+    if (index < values.length) stack.push(current);
+  }
+  return answer;
+}
+
+function subarrayMinimumSum(values) {
+  const mod = 1_000_000_007;
+  const stack = [];
+  let answer = 0;
+  for (let right = 0; right <= values.length; right += 1) {
+    const current = right === values.length ? -1 : values[right];
+    while (stack.length && values[stack.at(-1)] >= current) {
+      const middle = stack.pop();
+      const left = stack.length ? stack.at(-1) : -1;
+      answer = (answer + values[middle] * (middle - left) * (right - middle)) % mod;
+    }
+    stack.push(right);
+  }
+  return answer;
+}
+
 const twoSumCases = [
   ['1 4 6 8\n10', '1 2'],
   ['-3 4 3 90\n0', '0 2'],
@@ -386,6 +426,34 @@ const minimumWindowInputs = [
   })
 ];
 
+const removeDigitsInputs = [
+  ['10', 1], ['10', 2], ['9', 0], ['9', 1], ['1000', 1], ['1000', 3],
+  ['112', 1], ['123456', 3], ['654321', 3], ['10200', 1], ['100200', 1],
+  ['111111', 4], ['9876543210', 9], ['765028321', 5], ['10001', 1],
+  ...Array.from({ length: 15 }, (_, seed) => {
+    const number = Array.from({ length: 60 + seed * 7 }, (_, index) => String((index * 7 + seed * 3 + Math.floor(index / 5)) % 10)).join('');
+    return [number, (seed * 11 + 3) % (number.length + 1)];
+  })
+];
+
+const nextGreaterInputs = [
+  [1], [1, 2], [2, 1], [1, 1], [1, 2, 1], [5, 4, 3, 2, 1],
+  [1, 2, 3, 4, 5], [3, 3, 3], [-1, 0, -2], [2, 5, 3, 7, 1],
+  [100000, -100000, 0], [4, 1, 2, 3], [2, 1, 2, 4, 3], [1, 5, 3, 6, 8],
+  [9, 8, 7, 3, 2, 1, 10],
+  ...Array.from({ length: 15 }, (_, seed) => Array.from({ length: 45 + seed * 9 }, (_, index) =>
+    ((index * 61 + seed * 29 + Math.floor(index / 4)) % 151) - 75))
+];
+
+const subarrayMinimumInputs = [
+  [1], [1, 1], [1, 2], [2, 1], [3, 1, 2, 4], [5, 4, 3, 2, 1],
+  [1, 2, 3, 4, 5], [2, 2, 2], [5, 1, 5], [10, 3, 4, 2, 8],
+  [30000, 30000], [7, 3, 8, 1, 6], [9, 8, 2, 8, 9], [1, 100, 1],
+  [11, 81, 94, 43, 3],
+  ...Array.from({ length: 15 }, (_, seed) => Array.from({ length: 70 + seed * 13 }, (_, index) =>
+    1 + ((index * 73 + seed * 31 + Math.floor(index / 8)) % 30000)))
+];
+
 const hiddenCases = {
   'two-sum': twoSumCases.map(([input, output]) => ({ input, output, hidden: true })),
   'valid-parentheses': parenthesesInputs.map((input) => ({ input, output: String(validParentheses(input)), hidden: true })),
@@ -404,7 +472,10 @@ const hiddenCases = {
   'daily-temperatures': temperatureInputs.map((values) => ({ input: values.join(' '), output: warmerDayWaits(values).join(' '), hidden: true })),
   'largest-rectangle-in-histogram': histogramInputs.map((values) => ({ input: values.join(' '), output: String(largestHistogramRectangle(values)), hidden: true })),
   'sliding-window-maximum': slidingWindowInputs.map(({ values, size }) => ({ input: `${values.join(' ')}\n${size}`, output: slidingWindowMaximum(values, size).join(' '), hidden: true })),
-  'minimum-window-substring': minimumWindowInputs.map(([source, target]) => ({ input: `${source}\n${target}`, output: minimumWindow(source, target), hidden: true }))
+  'minimum-window-substring': minimumWindowInputs.map(([source, target]) => ({ input: `${source}\n${target}`, output: minimumWindow(source, target), hidden: true })),
+  'remove-k-digits': removeDigitsInputs.map(([number, count]) => ({ input: `${number}\n${count}`, output: removeDigits(number, count), hidden: true })),
+  'next-greater-element-ii': nextGreaterInputs.map((values) => ({ input: values.join(' '), output: circularNextGreater(values).join(' '), hidden: true })),
+  'sum-of-subarray-minimums': subarrayMinimumInputs.map((values) => ({ input: values.join(' '), output: String(subarrayMinimumSum(values)), hidden: true }))
 };
 
 function getHiddenTests(slug) {

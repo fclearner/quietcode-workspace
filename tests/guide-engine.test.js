@@ -112,7 +112,7 @@ test('prioritizes the ByteDance rainwater track when enabled', () => {
     today: '2026-07-21', solved, attempted: solved, submissions: [], dailyGoal: 1,
     focusTrack: 'bytedance-rainwater'
   });
-  assert.equal(guide.recommendations[0].slug, 'largest-rectangle-in-histogram');
+  assert.equal(guide.recommendations[0].slug, guide.profile.focusProblemSlug);
   assert.equal(guide.recommendations[0].mode, 'focus');
   assert.match(guide.message, /字节接雨水专项/);
   const nextDay = generateGuide(importedData, {
@@ -121,17 +121,36 @@ test('prioritizes the ByteDance rainwater track when enabled', () => {
   });
   assert.notEqual(nextDay.profile.focusProblemSlug, guide.profile.focusProblemSlug);
   assert.equal(nextDay.recommendations[0].slug, nextDay.profile.focusProblemSlug);
-  assert.equal(nextDay.profile.focusProblemSlug, 'sliding-window-maximum');
   const thirdDay = generateGuide(importedData, {
     today: '2026-07-23', solved, attempted: solved, submissions: [], dailyGoal: 1,
     focusTrack: 'bytedance-rainwater'
   });
-  assert.equal(thirdDay.profile.focusProblemSlug, 'minimum-window-substring');
+  assert.notEqual(thirdDay.profile.focusProblemSlug, nextDay.profile.focusProblemSlug);
   const rerolled = generateGuide(importedData, {
     today: '2026-07-21', solved, attempted: solved, submissions: [], dailyGoal: 1,
     focusTrack: 'bytedance-rainwater', rotationOffset: 1
   });
   assert.equal(rerolled.profile.rotationOffset, 1);
-  assert.equal(rerolled.profile.focusProblemSlug, 'sliding-window-maximum');
+  assert.notEqual(rerolled.profile.focusProblemSlug, guide.profile.focusProblemSlug);
   assert.notDeepEqual(rerolled.recommendations.map((item) => item.slug), guide.recommendations.map((item) => item.slug));
+});
+
+test('continues with fresh monotonic-stack work after the first fourteen exercises', () => {
+  const completed = [
+    'two-sum', 'longest-substring-without-repeating-characters', 'container-with-most-water',
+    'valid-parentheses', 'trapping-rain-water', 'maximum-subarray', 'merge-intervals',
+    'minimum-window-substring', 'largest-rectangle-in-histogram', 'best-time-to-buy-and-sell-stock',
+    'lru-cache', 'sliding-window-maximum', 'design-hashset', 'daily-temperatures'
+  ];
+  const solved = Object.fromEntries(completed.map((slug) => [slug, '2026-07-27']));
+  const guide = generateGuide(importedData, {
+    today: '2026-07-28', solved, attempted: solved, submissions: [], dailyGoal: 1,
+    focusTrack: 'bytedance-rainwater', rotationOffset: 0
+  });
+  assert.equal(guide.profile.solvedCount, 14);
+  assert.equal(guide.profile.focusProblemSlug, 'sum-of-subarray-minimums');
+  assert.deepEqual(new Set(guide.recommendations.map((item) => item.slug)), new Set([
+    'next-greater-element-ii', 'sum-of-subarray-minimums', 'remove-k-digits'
+  ]));
+  assert.ok(guide.recommendations.every((item) => item.hasLocalTests));
 });
