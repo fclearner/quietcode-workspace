@@ -226,6 +226,52 @@ function subarrayMinimumSum(values) {
   return answer;
 }
 
+function asteroidSurvivors(asteroids) {
+  const stack = [];
+  for (const asteroid of asteroids) {
+    let alive = true;
+    while (alive && asteroid < 0 && stack.length && stack.at(-1) > 0) {
+      if (stack.at(-1) < -asteroid) stack.pop();
+      else {
+        if (stack.at(-1) === -asteroid) stack.pop();
+        alive = false;
+      }
+    }
+    if (alive) stack.push(asteroid);
+  }
+  return stack;
+}
+
+function contains132Pattern(values) {
+  const stack = [];
+  let middle = -Infinity;
+  for (let index = values.length - 1; index >= 0; index -= 1) {
+    if (values[index] < middle) return true;
+    while (stack.length && values[index] > stack.at(-1)) middle = stack.pop();
+    stack.push(values[index]);
+  }
+  return false;
+}
+
+function maximalBinaryRectangle(matrix) {
+  const heights = Array(matrix[0].length).fill(0);
+  let best = 0;
+  for (const row of matrix) {
+    for (let column = 0; column < row.length; column += 1) heights[column] = row[column] === '1' ? heights[column] + 1 : 0;
+    const stack = [];
+    for (let right = 0; right <= heights.length; right += 1) {
+      const current = right === heights.length ? 0 : heights[right];
+      while (stack.length && heights[stack.at(-1)] > current) {
+        const height = heights[stack.pop()];
+        const left = stack.length ? stack.at(-1) + 1 : 0;
+        best = Math.max(best, height * (right - left));
+      }
+      stack.push(right);
+    }
+  }
+  return best;
+}
+
 const twoSumCases = [
   ['1 4 6 8\n10', '1 2'],
   ['-3 4 3 90\n0', '0 2'],
@@ -454,6 +500,38 @@ const subarrayMinimumInputs = [
     1 + ((index * 73 + seed * 31 + Math.floor(index / 8)) % 30000)))
 ];
 
+const asteroidInputs = [
+  [1], [-1], [1, 2], [-1, -2], [1, -1], [2, -1], [1, -2],
+  [5, 10, -5], [8, -8], [10, 2, -5], [-2, -1, 1, 2], [1, -2, -2, -2],
+  [3, 4, -9, 8], [1, 5, -3, -5, 10], [1000, -999, -1000],
+  ...Array.from({ length: 15 }, (_, seed) => Array.from({ length: 55 + seed * 9 }, (_, index) => {
+    const size = 1 + ((index * 67 + seed * 31) % 1000);
+    return (index * 7 + seed * 5 + Math.floor(index / 3)) % 2 ? size : -size;
+  }))
+];
+
+const pattern132Inputs = [
+  [1], [1, 2], [1, 2, 3], [3, 1, 4, 2], [-1, 3, 2, 0], [3, 5, 0, 3, 4],
+  [1, 0, 1, -4, -3], [1, 4, 0, -1, -2, -3, -1, -2], [9, 11, 8, 9, 10, 7, 9],
+  [1, 2, 2, 1], [3, 3, 3], [100000, -100000, 0], [6, 12, 3, 4, 6, 11, 20],
+  [5, 4, 3, 2, 1], [1, 2, 3, 4, 5],
+  ...Array.from({ length: 15 }, (_, seed) => Array.from({ length: 60 + seed * 11 }, (_, index) =>
+    ((index * 79 + seed * 43 + Math.floor(index / 5) * 17) % 301) - 150))
+];
+
+const maximalRectangleInputs = [
+  ['0'], ['1'], ['00'], ['11'], ['10', '10'], ['01', '10'], ['11', '11'],
+  ['10100', '10111', '11111', '10010'], ['000', '000'], ['111', '111', '111'],
+  ['101', '111', '111'], ['1', '1', '0', '1'], ['01010', '11111', '01110'],
+  ['1001', '1111', '1111', '1001'], ['010', '111', '010'],
+  ...Array.from({ length: 15 }, (_, seed) => {
+    const rows = 12 + seed;
+    const columns = 14 + seed * 2;
+    return Array.from({ length: rows }, (_, row) => Array.from({ length: columns }, (_, column) =>
+      ((row * 31 + column * 47 + seed * 13 + Math.floor(column / 4)) % 7) < 4 ? '1' : '0').join(''));
+  })
+];
+
 const hiddenCases = {
   'two-sum': twoSumCases.map(([input, output]) => ({ input, output, hidden: true })),
   'valid-parentheses': parenthesesInputs.map((input) => ({ input, output: String(validParentheses(input)), hidden: true })),
@@ -475,7 +553,10 @@ const hiddenCases = {
   'minimum-window-substring': minimumWindowInputs.map(([source, target]) => ({ input: `${source}\n${target}`, output: minimumWindow(source, target), hidden: true })),
   'remove-k-digits': removeDigitsInputs.map(([number, count]) => ({ input: `${number}\n${count}`, output: removeDigits(number, count), hidden: true })),
   'next-greater-element-ii': nextGreaterInputs.map((values) => ({ input: values.join(' '), output: circularNextGreater(values).join(' '), hidden: true })),
-  'sum-of-subarray-minimums': subarrayMinimumInputs.map((values) => ({ input: values.join(' '), output: String(subarrayMinimumSum(values)), hidden: true }))
+  'sum-of-subarray-minimums': subarrayMinimumInputs.map((values) => ({ input: values.join(' '), output: String(subarrayMinimumSum(values)), hidden: true })),
+  'asteroid-collision': asteroidInputs.map((values) => ({ input: values.join(' '), output: asteroidSurvivors(values).join(' '), hidden: true })),
+  '132-pattern': pattern132Inputs.map((values) => ({ input: values.join(' '), output: String(contains132Pattern(values)), hidden: true })),
+  'maximal-rectangle': maximalRectangleInputs.map((matrix) => ({ input: matrix.join('\n'), output: String(maximalBinaryRectangle(matrix)), hidden: true }))
 };
 
 function getHiddenTests(slug) {

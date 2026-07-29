@@ -19,7 +19,10 @@ const localSlugs = [
   'minimum-window-substring',
   'next-greater-element-ii',
   'sum-of-subarray-minimums',
-  'remove-k-digits'
+  'remove-k-digits',
+  'asteroid-collision',
+  '132-pattern',
+  'maximal-rectangle'
 ];
 
 test('curated problems start with TODO skeletons and keep answers separately', () => {

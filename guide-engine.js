@@ -140,9 +140,22 @@ function generateGuide(problemData, rawProfile = {}) {
     ['minimum-window-substring', 50],
     ['next-greater-element-ii', 58],
     ['sum-of-subarray-minimums', 60],
-    ['remove-k-digits', 56]
+    ['remove-k-digits', 56],
+    ['asteroid-collision', 54],
+    ['132-pattern', 58],
+    ['maximal-rectangle', 66]
   ]);
-  const availableFocusSlugs = [...rainwaterTrack.keys()].filter((slug) => {
+  const focusStages = [
+    ['container-with-most-water', 'daily-temperatures', 'trapping-rain-water'],
+    ['largest-rectangle-in-histogram', 'sliding-window-maximum', 'minimum-window-substring'],
+    ['next-greater-element-ii', 'sum-of-subarray-minimums', 'remove-k-digits'],
+    ['asteroid-collision', '132-pattern', 'maximal-rectangle']
+  ];
+  const focusStageBySlug = new Map(focusStages.flatMap((stage, index) => stage.map((slug) => [slug, index])));
+  const activeFocusStage = focusTrack === 'bytedance-rainwater'
+    ? focusStages.findIndex((stage) => stage.some((slug) => problemBySlug.has(slug) && !solvedSet.has(slug)))
+    : -1;
+  const availableFocusSlugs = (focusStages[activeFocusStage] || []).filter((slug) => {
     const problem = problemBySlug.get(slug);
     return problem && hasCompleteContent(problem) && !solvedSet.has(slug) && attempted[slug] !== today;
   });
@@ -154,6 +167,9 @@ function generateGuide(problemData, rawProfile = {}) {
   for (const problem of practiceProblems) {
     if (solvedSet.has(problem.slug)) continue;
     if (attempted[problem.slug] === today) continue;
+    const problemFocusStage = focusStageBySlug.get(problem.slug);
+    if (focusTrack === 'bytedance-rainwater' && activeFocusStage >= 0
+      && problemFocusStage !== undefined && problemFocusStage > activeFocusStage) continue;
     const pStats = perProblem.get(problem.slug) || { failures: 0, passes: 0 };
     const frequency = Math.max(0, ...problem.companies.map((item) => item.frequency || 0));
     let score = frequency * .28 + Math.log2(problem.companies.length + 1) * 3;

@@ -20,7 +20,10 @@ const programs = {
   'minimum-window-substring': String.raw`const lines=require('fs').readFileSync(0,'utf8').split(/\r?\n/),s=lines[0]||'',t=lines[1]||'',need=new Map();for(const c of t)need.set(c,(need.get(c)||0)+1);let missing=t.length,left=0,start=0,length=Infinity;for(let right=0;right<s.length;right++){const c=s[right];if((need.get(c)||0)>0)missing--;need.set(c,(need.get(c)||0)-1);while(missing===0){if(right-left+1<length){start=left;length=right-left+1}const removed=s[left++];need.set(removed,(need.get(removed)||0)+1);if(need.get(removed)>0)missing++}}console.log(length===Infinity?'':s.slice(start,start+length))`,
   'remove-k-digits': String.raw`const lines=require('fs').readFileSync(0,'utf8').trim().split(/\n/),num=lines[0],stack=[];let k=Number(lines[1]);for(const d of num){while(k>0&&stack.length&&stack.at(-1)>d){stack.pop();k--}stack.push(d)}while(k-->0)stack.pop();console.log(stack.join('').replace(/^0+/,'')||'0')`,
   'next-greater-element-ii': String.raw`const a=require('fs').readFileSync(0,'utf8').trim().split(/\s+/).map(Number),answer=Array(a.length).fill(-1),stack=[];for(let i=0;i<a.length*2;i++){const current=i%a.length;while(stack.length&&a[stack.at(-1)]<a[current])answer[stack.pop()]=a[current];if(i<a.length)stack.push(current)}console.log(answer.join(' '))`,
-  'sum-of-subarray-minimums': String.raw`const a=require('fs').readFileSync(0,'utf8').trim().split(/\s+/).map(Number),stack=[];let answer=0;for(let r=0;r<=a.length;r++){const current=r===a.length?-1:a[r];while(stack.length&&a[stack.at(-1)]>=current){const middle=stack.pop(),left=stack.length?stack.at(-1):-1;answer=(answer+a[middle]*(middle-left)*(r-middle))%1000000007}stack.push(r)}console.log(answer)`
+  'sum-of-subarray-minimums': String.raw`const a=require('fs').readFileSync(0,'utf8').trim().split(/\s+/).map(Number),stack=[];let answer=0;for(let r=0;r<=a.length;r++){const current=r===a.length?-1:a[r];while(stack.length&&a[stack.at(-1)]>=current){const middle=stack.pop(),left=stack.length?stack.at(-1):-1;answer=(answer+a[middle]*(middle-left)*(r-middle))%1000000007}stack.push(r)}console.log(answer)`,
+  'asteroid-collision': String.raw`const a=require('fs').readFileSync(0,'utf8').trim().split(/\s+/).map(Number),stack=[];for(const x of a){let alive=true;while(alive&&x<0&&stack.length&&stack.at(-1)>0){if(stack.at(-1)<-x)stack.pop();else{if(stack.at(-1)===-x)stack.pop();alive=false}}if(alive)stack.push(x)}console.log(stack.join(' '))`,
+  '132-pattern': String.raw`const a=require('fs').readFileSync(0,'utf8').trim().split(/\s+/).map(Number),stack=[];let middle=-Infinity,found=false;for(let i=a.length-1;i>=0;i--){if(a[i]<middle){found=true;break}while(stack.length&&a[i]>stack.at(-1))middle=stack.pop();stack.push(a[i])}console.log(found?'true':'false')`,
+  'maximal-rectangle': String.raw`const matrix=require('fs').readFileSync(0,'utf8').trim().split(/\n/).map(x=>x.trim()),heights=Array(matrix[0].length).fill(0);let best=0;for(const row of matrix){for(let c=0;c<row.length;c++)heights[c]=row[c]==='1'?heights[c]+1:0;const stack=[];for(let r=0;r<=heights.length;r++){const current=r===heights.length?0:heights[r];while(stack.length&&heights[stack.at(-1)]>current){const height=heights[stack.pop()],left=stack.length?stack.at(-1)+1:0;best=Math.max(best,height*(r-left))}stack.push(r)}}console.log(best)`
 };
 
 test('keeps substantial hidden suites on the server', () => {
@@ -41,6 +44,9 @@ test('keeps substantial hidden suites on the server', () => {
   assert.equal(getHiddenTestCount('remove-k-digits'), 30);
   assert.equal(getHiddenTestCount('next-greater-element-ii'), 30);
   assert.equal(getHiddenTestCount('sum-of-subarray-minimums'), 30);
+  assert.equal(getHiddenTestCount('asteroid-collision'), 30);
+  assert.equal(getHiddenTestCount('132-pattern'), 30);
+  assert.equal(getHiddenTestCount('maximal-rectangle'), 30);
   assert.equal(getHiddenTestCount('unknown-problem'), 0);
 });
 

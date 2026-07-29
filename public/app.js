@@ -43,9 +43,12 @@ const hiddenCaseCounts = {
   'minimum-window-substring': 30,
   'next-greater-element-ii': 30,
   'sum-of-subarray-minimums': 30,
-  'remove-k-digits': 30
+  'remove-k-digits': 30,
+  'asteroid-collision': 30,
+  '132-pattern': 30,
+  'maximal-rectangle': 30
 };
-const JUDGE_VERSION = 8;
+const JUDGE_VERSION = 9;
 const hiddenJudgeSlugs = Object.keys(hiddenCaseCounts);
 
 function migrateJudgeState(target, savedVersion) {
@@ -58,7 +61,8 @@ function migrateJudgeState(target, savedVersion) {
     ...(version >= 4 ? ['design-hashset'] : []),
     ...(version >= 5 ? ['longest-substring-without-repeating-characters', 'maximum-subarray', 'merge-intervals'] : []),
     ...(version >= 6 ? ['container-with-most-water', 'trapping-rain-water', 'daily-temperatures'] : []),
-    ...(version >= 7 ? ['largest-rectangle-in-histogram', 'sliding-window-maximum', 'minimum-window-substring'] : [])
+    ...(version >= 7 ? ['largest-rectangle-in-histogram', 'sliding-window-maximum', 'minimum-window-substring'] : []),
+    ...(version >= 8 ? ['next-greater-element-ii', 'sum-of-subarray-minimums', 'remove-k-digits'] : [])
   ];
   previouslyVerified.forEach((slug) => {
     if (target.solved[slug]) target.verifiedSolved[slug] = target.solved[slug];
