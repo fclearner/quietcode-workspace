@@ -55,6 +55,7 @@ const curated = {
   ...require('./advanced-bytedance-track'),
   ...require('./monotonic-stack-track'),
   ...require('./stack-application-track'),
+  ...require('./monotonic-stack-mastery-track'),
   'two-sum': {
     id: 1,
     summary: '给定一个整数数组 nums 和一个整数 target，请输出两个数之和等于 target 的下标。',

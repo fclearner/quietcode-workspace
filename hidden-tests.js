@@ -272,6 +272,46 @@ function maximalBinaryRectangle(matrix) {
   return best;
 }
 
+function maximumRampWidth(values) {
+  const stack = [];
+  for (let index = 0; index < values.length; index += 1) {
+    if (!stack.length || values[index] < values[stack.at(-1)]) stack.push(index);
+  }
+  let best = 0;
+  for (let right = values.length - 1; right >= 0 && stack.length; right -= 1) {
+    while (stack.length && values[stack.at(-1)] <= values[right]) best = Math.max(best, right - stack.pop());
+  }
+  return best;
+}
+
+function visiblePeopleCounts(heights) {
+  const answer = Array(heights.length).fill(0);
+  const stack = [];
+  for (let index = heights.length - 1; index >= 0; index -= 1) {
+    while (stack.length && heights[index] > stack.at(-1)) {
+      stack.pop();
+      answer[index] += 1;
+    }
+    if (stack.length) answer[index] += 1;
+    stack.push(heights[index]);
+  }
+  return answer;
+}
+
+function smallestDistinctSubsequence(value) {
+  const last = new Map([...value].map((char, index) => [char, index]));
+  const used = new Set();
+  const stack = [];
+  for (let index = 0; index < value.length; index += 1) {
+    const char = value[index];
+    if (used.has(char)) continue;
+    while (stack.length && stack.at(-1) > char && last.get(stack.at(-1)) > index) used.delete(stack.pop());
+    stack.push(char);
+    used.add(char);
+  }
+  return stack.join('');
+}
+
 const twoSumCases = [
   ['1 4 6 8\n10', '1 2'],
   ['-3 4 3 90\n0', '0 2'],
@@ -532,6 +572,32 @@ const maximalRectangleInputs = [
   })
 ];
 
+const maximumWidthRampInputs = [
+  [1], [1, 1], [1, 2], [2, 1], [6, 0, 8, 2, 1, 5],
+  [9, 8, 1, 0, 1, 9, 4, 0, 4, 1], [5, 4, 3, 2, 1], [1, 2, 3, 4, 5],
+  [3, 3, 3], [10, 1, 2, 3, 4, 5], [2, 0, 2], [-5, -10, -3],
+  [100000, -100000, 100000], [4, 2, 3, 1, 5], [8, 7, 6, 1, 2, 3, 4, 9],
+  ...Array.from({ length: 15 }, (_, seed) => Array.from({ length: 70 + seed * 11 }, (_, index) =>
+    ((index * 89 + seed * 47 + Math.floor(index / 6) * 23) % 501) - 250))
+];
+
+const visiblePeopleInputs = [
+  [1], [1, 2], [2, 1], [10, 6, 8, 5, 11, 9], [5, 1, 2, 3, 10],
+  [3, 2, 1], [1, 2, 3], [7, 1, 5, 2, 6, 3, 4], [100, 1, 2, 3, 4, 5],
+  [1, 100, 2, 99, 3, 98], [9, 4, 7, 2, 8, 1, 6], [5, 4, 1, 2, 3],
+  [20, 10, 15, 5, 7, 30], [2, 8, 1, 7, 3, 6, 4, 5], [11, 3, 9, 1, 8, 2, 7],
+  ...Array.from({ length: 15 }, (_, seed) => Array.from({ length: 45 + seed * 9 }, (_, index) =>
+    1 + ((index * 37 + seed * 53) % 1009)))
+];
+
+const removeDuplicateLetterInputs = [
+  'a', 'aa', 'ab', 'ba', 'bcabc', 'cbacdcbc', 'bbcaac', 'leetcode',
+  'ecbacba', 'cdadabcc', 'abcd', 'dcba', 'thesqtitxyetpxloeevdeqifkz',
+  'aaaaabbbbbccccc', 'zyxzyxzyx',
+  ...Array.from({ length: 15 }, (_, seed) => Array.from({ length: 80 + seed * 13 }, (_, index) =>
+    String.fromCharCode(97 + ((index * 11 + seed * 7 + Math.floor(index / 5) * 3) % 26))).join(''))
+];
+
 const hiddenCases = {
   'two-sum': twoSumCases.map(([input, output]) => ({ input, output, hidden: true })),
   'valid-parentheses': parenthesesInputs.map((input) => ({ input, output: String(validParentheses(input)), hidden: true })),
@@ -556,7 +622,10 @@ const hiddenCases = {
   'sum-of-subarray-minimums': subarrayMinimumInputs.map((values) => ({ input: values.join(' '), output: String(subarrayMinimumSum(values)), hidden: true })),
   'asteroid-collision': asteroidInputs.map((values) => ({ input: values.join(' '), output: asteroidSurvivors(values).join(' '), hidden: true })),
   '132-pattern': pattern132Inputs.map((values) => ({ input: values.join(' '), output: String(contains132Pattern(values)), hidden: true })),
-  'maximal-rectangle': maximalRectangleInputs.map((matrix) => ({ input: matrix.join('\n'), output: String(maximalBinaryRectangle(matrix)), hidden: true }))
+  'maximal-rectangle': maximalRectangleInputs.map((matrix) => ({ input: matrix.join('\n'), output: String(maximalBinaryRectangle(matrix)), hidden: true })),
+  'maximum-width-ramp': maximumWidthRampInputs.map((values) => ({ input: values.join(' '), output: String(maximumRampWidth(values)), hidden: true })),
+  'number-of-visible-people-in-a-queue': visiblePeopleInputs.map((values) => ({ input: values.join(' '), output: visiblePeopleCounts(values).join(' '), hidden: true })),
+  'remove-duplicate-letters': removeDuplicateLetterInputs.map((input) => ({ input, output: smallestDistinctSubsequence(input), hidden: true }))
 };
 
 function getHiddenTests(slug) {

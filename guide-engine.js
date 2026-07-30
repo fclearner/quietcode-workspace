@@ -143,13 +143,17 @@ function generateGuide(problemData, rawProfile = {}) {
     ['remove-k-digits', 56],
     ['asteroid-collision', 54],
     ['132-pattern', 58],
-    ['maximal-rectangle', 66]
+    ['maximal-rectangle', 66],
+    ['maximum-width-ramp', 62],
+    ['number-of-visible-people-in-a-queue', 64],
+    ['remove-duplicate-letters', 66]
   ]);
   const focusStages = [
     ['container-with-most-water', 'daily-temperatures', 'trapping-rain-water'],
     ['largest-rectangle-in-histogram', 'sliding-window-maximum', 'minimum-window-substring'],
     ['next-greater-element-ii', 'sum-of-subarray-minimums', 'remove-k-digits'],
-    ['asteroid-collision', '132-pattern', 'maximal-rectangle']
+    ['asteroid-collision', '132-pattern', 'maximal-rectangle'],
+    ['maximum-width-ramp', 'number-of-visible-people-in-a-queue', 'remove-duplicate-letters']
   ];
   const focusStageBySlug = new Map(focusStages.flatMap((stage, index) => stage.map((slug) => [slug, index])));
   const activeFocusStage = focusTrack === 'bytedance-rainwater'

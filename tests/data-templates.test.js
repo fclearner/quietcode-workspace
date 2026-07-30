@@ -22,7 +22,10 @@ const localSlugs = [
   'remove-k-digits',
   'asteroid-collision',
   '132-pattern',
-  'maximal-rectangle'
+  'maximal-rectangle',
+  'maximum-width-ramp',
+  'number-of-visible-people-in-a-queue',
+  'remove-duplicate-letters'
 ];
 
 test('curated problems start with TODO skeletons and keep answers separately', () => {

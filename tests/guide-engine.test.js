@@ -175,3 +175,25 @@ test('continues with stack applications after the first seventeen exercises', ()
   ]));
   assert.ok(guide.recommendations.every((item) => item.hasLocalTests));
 });
+
+test('continues with monotonic-stack mastery after the first twenty exercises', () => {
+  const completed = [
+    'two-sum', 'longest-substring-without-repeating-characters', 'container-with-most-water',
+    'valid-parentheses', 'trapping-rain-water', 'maximum-subarray', 'merge-intervals',
+    'minimum-window-substring', 'largest-rectangle-in-histogram', 'best-time-to-buy-and-sell-stock',
+    'lru-cache', 'sliding-window-maximum', 'remove-k-digits', 'next-greater-element-ii',
+    'design-hashset', 'daily-temperatures', 'sum-of-subarray-minimums', 'asteroid-collision',
+    '132-pattern', 'maximal-rectangle'
+  ];
+  const solved = Object.fromEntries(completed.map((slug) => [slug, '2026-07-29']));
+  const guide = generateGuide(importedData, {
+    today: '2026-07-30', solved, attempted: solved, submissions: [], dailyGoal: 1,
+    focusTrack: 'bytedance-rainwater', rotationOffset: 0
+  });
+  assert.equal(guide.profile.solvedCount, 20);
+  assert.equal(guide.profile.focusProblemSlug, 'maximum-width-ramp');
+  assert.deepEqual(new Set(guide.recommendations.map((item) => item.slug)), new Set([
+    'maximum-width-ramp', 'number-of-visible-people-in-a-queue', 'remove-duplicate-letters'
+  ]));
+  assert.ok(guide.recommendations.every((item) => item.hasLocalTests));
+});

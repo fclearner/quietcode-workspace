@@ -23,7 +23,10 @@ const programs = {
   'sum-of-subarray-minimums': String.raw`const a=require('fs').readFileSync(0,'utf8').trim().split(/\s+/).map(Number),stack=[];let answer=0;for(let r=0;r<=a.length;r++){const current=r===a.length?-1:a[r];while(stack.length&&a[stack.at(-1)]>=current){const middle=stack.pop(),left=stack.length?stack.at(-1):-1;answer=(answer+a[middle]*(middle-left)*(r-middle))%1000000007}stack.push(r)}console.log(answer)`,
   'asteroid-collision': String.raw`const a=require('fs').readFileSync(0,'utf8').trim().split(/\s+/).map(Number),stack=[];for(const x of a){let alive=true;while(alive&&x<0&&stack.length&&stack.at(-1)>0){if(stack.at(-1)<-x)stack.pop();else{if(stack.at(-1)===-x)stack.pop();alive=false}}if(alive)stack.push(x)}console.log(stack.join(' '))`,
   '132-pattern': String.raw`const a=require('fs').readFileSync(0,'utf8').trim().split(/\s+/).map(Number),stack=[];let middle=-Infinity,found=false;for(let i=a.length-1;i>=0;i--){if(a[i]<middle){found=true;break}while(stack.length&&a[i]>stack.at(-1))middle=stack.pop();stack.push(a[i])}console.log(found?'true':'false')`,
-  'maximal-rectangle': String.raw`const matrix=require('fs').readFileSync(0,'utf8').trim().split(/\n/).map(x=>x.trim()),heights=Array(matrix[0].length).fill(0);let best=0;for(const row of matrix){for(let c=0;c<row.length;c++)heights[c]=row[c]==='1'?heights[c]+1:0;const stack=[];for(let r=0;r<=heights.length;r++){const current=r===heights.length?0:heights[r];while(stack.length&&heights[stack.at(-1)]>current){const height=heights[stack.pop()],left=stack.length?stack.at(-1)+1:0;best=Math.max(best,height*(r-left))}stack.push(r)}}console.log(best)`
+  'maximal-rectangle': String.raw`const matrix=require('fs').readFileSync(0,'utf8').trim().split(/\n/).map(x=>x.trim()),heights=Array(matrix[0].length).fill(0);let best=0;for(const row of matrix){for(let c=0;c<row.length;c++)heights[c]=row[c]==='1'?heights[c]+1:0;const stack=[];for(let r=0;r<=heights.length;r++){const current=r===heights.length?0:heights[r];while(stack.length&&heights[stack.at(-1)]>current){const height=heights[stack.pop()],left=stack.length?stack.at(-1)+1:0;best=Math.max(best,height*(r-left))}stack.push(r)}}console.log(best)`,
+  'maximum-width-ramp': String.raw`const a=require('fs').readFileSync(0,'utf8').trim().split(/\s+/).map(Number),stack=[];for(let i=0;i<a.length;i++)if(!stack.length||a[i]<a[stack.at(-1)])stack.push(i);let best=0;for(let r=a.length-1;r>=0&&stack.length;r--)while(stack.length&&a[stack.at(-1)]<=a[r])best=Math.max(best,r-stack.pop());console.log(best)`,
+  'number-of-visible-people-in-a-queue': String.raw`const a=require('fs').readFileSync(0,'utf8').trim().split(/\s+/).map(Number),answer=Array(a.length).fill(0),stack=[];for(let i=a.length-1;i>=0;i--){while(stack.length&&a[i]>stack.at(-1)){stack.pop();answer[i]++}if(stack.length)answer[i]++;stack.push(a[i])}console.log(answer.join(' '))`,
+  'remove-duplicate-letters': String.raw`const s=require('fs').readFileSync(0,'utf8').trim(),last=new Map([...s].map((c,i)=>[c,i])),used=new Set(),stack=[];for(let i=0;i<s.length;i++){const c=s[i];if(used.has(c))continue;while(stack.length&&stack.at(-1)>c&&last.get(stack.at(-1))>i)used.delete(stack.pop());stack.push(c);used.add(c)}console.log(stack.join(''))`
 };
 
 test('keeps substantial hidden suites on the server', () => {
@@ -47,6 +50,9 @@ test('keeps substantial hidden suites on the server', () => {
   assert.equal(getHiddenTestCount('asteroid-collision'), 30);
   assert.equal(getHiddenTestCount('132-pattern'), 30);
   assert.equal(getHiddenTestCount('maximal-rectangle'), 30);
+  assert.equal(getHiddenTestCount('maximum-width-ramp'), 30);
+  assert.equal(getHiddenTestCount('number-of-visible-people-in-a-queue'), 30);
+  assert.equal(getHiddenTestCount('remove-duplicate-letters'), 30);
   assert.equal(getHiddenTestCount('unknown-problem'), 0);
 });
 
